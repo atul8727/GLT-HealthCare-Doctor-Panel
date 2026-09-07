@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
-import { FiArrowLeft, FiPlayCircle, FiPlus, FiFileText } from "react-icons/fi";
+import { FiArrowLeft, FiPlayCircle, FiPlus, FiFileText, FiAlertTriangle } from "react-icons/fi";
 import { patientService } from "../../../services/patients/patientService";
 import { vitalsService } from "../../../services/vitals/vitalsService";
+import { friendlyError } from "../../../utils/errorMessage";
 import Card from "../../../components/ui/Card";
 import Button from "../../../components/ui/Button";
 import Input from "../../../components/ui/Input";
@@ -28,6 +29,7 @@ export default function PatientDetails() {
   const [vitalsHistory, setVitalsHistory] = useState([]);
   const [tab, setTab] = useState("Overview");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const [vitalsForm, setVitalsForm] = useState(EMPTY_VITALS_FORM);
   const [showVitalsForm, setShowVitalsForm] = useState(false);
@@ -43,18 +45,29 @@ export default function PatientDetails() {
   };
 
   useEffect(() => {
+    if (!id || id === "undefined") {
+      setLoading(false);
+      setError({ message: "Patient ID missing hai." });
+      return;
+    }
     (async () => {
       setLoading(true);
-      const [p, c, rx] = await Promise.all([
-        patientService.getPatientById(id),
-        patientService.getPatientConsultations(id),
-        patientService.getPatientPrescriptions(id),
-      ]);
-      setPatient(p);
-      setConsultations(c);
-      setPrescriptions(rx);
-      await loadVitals();
-      setLoading(false);
+      setError(null);
+      try {
+        const [p, c, rx] = await Promise.all([
+          patientService.getPatientById(id),
+          patientService.getPatientConsultations(id).catch(() => []),
+          patientService.getPatientPrescriptions(id).catch(() => []),
+        ]);
+        setPatient(p);
+        setConsultations(c);
+        setPrescriptions(rx);
+        await loadVitals();
+      } catch (err) {
+        setError(err);
+      } finally {
+        setLoading(false);
+      }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
@@ -75,6 +88,17 @@ export default function PatientDetails() {
   };
 
   if (loading) return <div className="flex justify-center py-24"><Spinner size={32} /></div>;
+  if (error) {
+    return (
+      <Card>
+        <EmptyState
+          icon={error.status === 403 ? undefined : FiAlertTriangle}
+          title={error.status === 403 ? "Permission denied" : "Patient load nahi ho paya"}
+          subtitle={friendlyError(error)}
+        />
+      </Card>
+    );
+  }
   if (!patient) return <EmptyState title="Patient not found" />;
 
   const initials = patient.name.split(" ").map((n) => n[0]).slice(0, 2).join("");

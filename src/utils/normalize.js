@@ -70,8 +70,10 @@ export function normalizeConsultation(c, patient) {
   return {
     id: pick(c, ["consultation_id", "id", "_id"]),
     patientId: pick(c, ["patient_id", "patientId"]),
-    date: pick(c, ["date", "consultation_date", "scheduled_date"], ""),
-    time: pick(c, ["time", "scheduled_time"], ""),
+    // date: pick(c, ["date", "consultation_date", "scheduled_date"], ""),
+    // time: pick(c, ["time", "scheduled_time"], ""),
+    date: pick(c, ["consultation_date", "date", "scheduled_date"], ""),
+    time: pick(c, ["consultation_time", "time", "scheduled_time"], ""),
     type: pick(c, ["type", "consultation_type"], "Online"),
     status: pick(c, ["status"], "Scheduled"),
     meetLink: pick(c, ["meet_link", "meetLink", "google_meet_link"], ""),

@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { FiFileText } from "react-icons/fi";
-import { patientService } from "../../../services/patients/patientService";
+import { FiFileText, FiAlertTriangle } from "react-icons/fi";
 import { consultationService } from "../../../services/consultations/consultationService";
 import Card from "../../../components/ui/Card";
 import Table from "../../../components/ui/Table";
@@ -10,22 +9,30 @@ import Button from "../../../components/ui/Button";
 import EmptyState from "../../../components/ui/EmptyState";
 import Spinner from "../../../components/ui/Spinner";
 import { formatDate } from "../../../utils/formatDate";
+import { friendlyError } from "../../../utils/errorMessage";
 
 export default function PatientHistory() {
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const patients = await patientService.getPatients();
-      const all = await consultationService.getConsultations("Completed");
-      const merged = all.map((c) => ({
-        ...c,
-        patientName: patients.find((p) => p.id === c.patientId)?.name || c.patient?.name,
-      }));
-      setRecords(merged);
-      setLoading(false);
+      setError(null);
+      try {
+        // consultationService.getConsultations already patient object
+        // ke saath enrich karke deta hai (agar backend embed na kare
+        // to bhi best-effort fetch karta hai), isliye alag se
+        // getPatients() call karne ki zaroorat nahi.
+        const all = await consultationService.getConsultations("Completed");
+        const merged = all.map((c) => ({ ...c, patientName: c.patient?.name || "—" }));
+        setRecords(merged);
+      } catch (err) {
+        setError(err);
+      } finally {
+        setLoading(false);
+      }
     })();
   }, []);
 
@@ -39,6 +46,12 @@ export default function PatientHistory() {
       <Card>
         {loading ? (
           <div className="flex justify-center py-14"><Spinner /></div>
+        ) : error ? (
+          <EmptyState
+            icon={error.status === 403 ? undefined : FiAlertTriangle}
+            title={error.status === 403 ? "Permission denied" : "Load nahi ho paya"}
+            subtitle={friendlyError(error)}
+          />
         ) : records.length === 0 ? (
           <EmptyState icon={FiFileText} title="No past records found" />
         ) : (

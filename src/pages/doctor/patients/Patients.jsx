@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { FiSearch, FiUsers, FiEye } from "react-icons/fi";
+import { FiSearch, FiUsers, FiEye, FiLock } from "react-icons/fi";
 import { patientService } from "../../../services/patients/patientService";
 import Card from "../../../components/ui/Card";
 import Table from "../../../components/ui/Table";
@@ -14,15 +14,20 @@ export default function Patients() {
   const [patients, setPatients] = useState([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     let active = true;
     setLoading(true);
+    setError(null);
     const t = setTimeout(async () => {
-      const data = await patientService.getPatients(query);
-      if (active) {
-        setPatients(data);
-        setLoading(false);
+      try {
+        const data = await patientService.getPatients(query);
+        if (active) setPatients(data);
+      } catch (err) {
+        if (active) setError(err);
+      } finally {
+        if (active) setLoading(false);
       }
     }, 250);
     return () => {
@@ -51,6 +56,12 @@ export default function Patients() {
       <Card>
         {loading ? (
           <div className="flex justify-center py-14"><Spinner /></div>
+        ) : error ? (
+          <EmptyState
+            icon={error.status === 403 ? FiLock : FiUsers}
+            title={error.status === 403 ? "Permission denied" : "Kuch galat ho gaya"}
+            subtitle={error.message}
+          />
         ) : patients.length === 0 ? (
           <EmptyState icon={FiUsers} title="No patients found" subtitle="Try a different search term." />
         ) : (

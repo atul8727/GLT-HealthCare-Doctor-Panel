@@ -11,6 +11,8 @@ import Spinner from "../../../components/ui/Spinner";
 import EmptyState from "../../../components/ui/EmptyState";
 import StatusBadge from "../../../components/common/StatusBadge";
 import { formatDate } from "../../../utils/formatDate";
+import { friendlyError } from "../../../utils/errorMessage";
+import { FiAlertTriangle } from "react-icons/fi";
 
 const FILTERS = ["All", "Today's", "Upcoming", "Completed", "Cancelled"];
 
@@ -18,13 +20,20 @@ export default function Consultations() {
   const [filter, setFilter] = useState("All");
   const [consultations, setConsultations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const data = await consultationService.getConsultations(filter);
-      setConsultations(data);
-      setLoading(false);
+      setError(null);
+      try {
+        const data = await consultationService.getConsultations(filter);
+        setConsultations(data);
+      } catch (err) {
+        setError(err);
+      } finally {
+        setLoading(false);
+      }
     })();
   }, [filter]);
 
@@ -40,6 +49,12 @@ export default function Consultations() {
       <Card>
         {loading ? (
           <div className="flex justify-center py-14"><Spinner /></div>
+        ) : error ? (
+          <EmptyState
+            icon={error.status === 403 ? undefined : FiAlertTriangle}
+            title={error.status === 403 ? "Permission denied" : "Load nahi ho paya"}
+            subtitle={friendlyError(error)}
+          />
         ) : consultations.length === 0 ? (
           <EmptyState icon={FiCalendar} title="No consultations found" />
         ) : (

@@ -47,7 +47,14 @@ async function request(path, { method = "GET", body, headers = {} } = {}) {
   }
 
   if (!res.ok || json?.success === false) {
-    throw new Error(json?.message || `API Error: ${res.status}`);
+    const message =
+      res.status === 403
+        ? json?.message ||
+          "Permission denied: aapke doctor account ko is data ko access karne ki permission server par abhi allow nahi hai. Backend/admin team se apne role ke liye is API ko allow karwane ko kahein."
+        : json?.message || `API Error: ${res.status}`;
+    const err = new Error(message);
+    err.status = res.status;
+    throw err;
   }
 
   // Backend envelope { success, message, data } -> sirf "data" return karo

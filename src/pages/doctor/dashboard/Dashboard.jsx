@@ -6,11 +6,16 @@ import StatsCards from "../../../components/dashboard/StatsCards";
 import UpcomingConsultation from "../../../components/dashboard/UpcomingConsultation";
 import TodayConsultations from "../../../components/dashboard/TodayConsultations";
 import RecentPatients from "../../../components/dashboard/RecentPatients";
+import Card from "../../../components/ui/Card";
+import EmptyState from "../../../components/ui/EmptyState";
+import { FiAlertTriangle } from "react-icons/fi";
 import { useAuth } from "../../../hooks/useAuth";
+import { friendlyError } from "../../../utils/errorMessage";
 
 export default function Dashboard() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [stats, setStats] = useState(null);
   const [todays, setTodays] = useState([]);
   const [next, setNext] = useState(null);
@@ -19,16 +24,25 @@ export default function Dashboard() {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const [s, t, n, r] = await Promise.all([
+      setError("");
+      // Promise.allSettled — agar ek call fail ho (jaise 403), to baaki
+      // widgets phir bhi apna data dikha sakte hain, poora dashboard
+      // blank nahi hoga.
+      const [s, t, n, r] = await Promise.allSettled([
         dashboardService.getStats(),
         dashboardService.getTodaysConsultations(),
         dashboardService.getNextConsultation(),
         dashboardService.getRecentPatients(),
       ]);
-      setStats(s);
-      setTodays(t);
-      setNext(n);
-      setRecentPatients(r);
+
+      if (s.status === "fulfilled") setStats(s.value);
+      if (t.status === "fulfilled") setTodays(t.value);
+      if (n.status === "fulfilled") setNext(n.value);
+      if (r.status === "fulfilled") setRecentPatients(r.value);
+
+      const firstError = [s, t, n, r].find((x) => x.status === "rejected")?.reason;
+      if (firstError) setError(friendlyError(firstError));
+
       setLoading(false);
     })();
   }, []);
@@ -44,6 +58,12 @@ export default function Dashboard() {
         title={`Good Morning, ${user?.name || "Doctor"}`}
         subtitle="Here's what's happening with your patients today."
       />
+
+      {error && (
+        <Card>
+          <EmptyState icon={FiAlertTriangle} title="Kuch data load nahi ho paya" subtitle={error} />
+        </Card>
+      )}
 
       <StatsCards stats={stats} loading={loading} />
 

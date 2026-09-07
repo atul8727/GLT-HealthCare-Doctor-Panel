@@ -8,6 +8,7 @@ import Card from "../../../components/ui/Card";
 import Input from "../../../components/ui/Input";
 import Button from "../../../components/ui/Button";
 import Spinner from "../../../components/ui/Spinner";
+import { friendlyError } from "../../../utils/errorMessage";
 
 export default function Profile() {
   const { user, setUser } = useAuth();
@@ -24,7 +25,10 @@ export default function Profile() {
         setUser(full);
         setForm({ name: full?.name || "", mobile: full?.mobile || "" });
       } catch (err) {
-        toast.error(err.message || "Profile load nahi ho payi");
+        // Login response se mila basic user data (name/email/role) already
+        // AuthContext mein hai, isliye yahan sirf ek warning dikha ke
+        // usi basic data ke saath UI chalne dete hain (crash nahi karte).
+        toast.error(friendlyError(err));
       } finally {
         setLoading(false);
       }
@@ -42,7 +46,7 @@ export default function Profile() {
       setEditing(false);
       toast.success("Profile updated");
     } catch (err) {
-      toast.error(err.message || "Profile update nahi ho paaya");
+      toast.error(friendlyError(err));
     } finally {
       setSaving(false);
     }
