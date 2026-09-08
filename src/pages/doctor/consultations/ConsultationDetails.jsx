@@ -2,22 +2,25 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
-import { FiArrowLeft, FiVideo, FiSave, FiCheckCircle, FiFileText, FiXCircle } from "react-icons/fi";
+import { FiArrowLeft, FiVideo, FiCheckCircle, FiFileText, FiAlertTriangle } from "react-icons/fi";
 import { consultationService } from "../../../services/consultations/consultationService";
 import { vitalsService } from "../../../services/vitals/vitalsService";
+import { prescriptionService } from "../../../services/prescriptions/prescriptionService";
 import Card from "../../../components/ui/Card";
 import Button from "../../../components/ui/Button";
 import Textarea from "../../../components/ui/Textarea";
 import Spinner from "../../../components/ui/Spinner";
 import StatusBadge from "../../../components/common/StatusBadge";
 import VitalsCard from "../../../components/common/VitalsCard";
+import EmptyState from "../../../components/ui/EmptyState";
 import { formatDate } from "../../../utils/formatDate";
+import { friendlyError } from "../../../utils/errorMessage";
 
 const FIELDS = [
   { key: "chiefComplaint", label: "Chief Complaint", placeholder: "Patient ki main complaint / symptoms" },
   { key: "medicalHistory", label: "Medical History", placeholder: "Relevant previous medical history" },
   { key: "examination", label: "Examination / Observations", placeholder: "Doctor ke examination observations" },
-  { key: "diagnosis", label: "Diagnosis", placeholder: "Diagnosis" },
+  { key: "diagnosis", label: "Diagnosis *", placeholder: "Diagnosis (required)" },
   { key: "notes", label: "Consultation Notes", placeholder: "Detailed consultation notes" },
   { key: "advice", label: "Advice", placeholder: "Patient ko di gayi advice" },
 ];
@@ -28,39 +31,58 @@ export default function ConsultationDetails() {
   const [consultation, setConsultation] = useState(null);
   const [form, setForm] = useState({});
   const [vitals, setVitals] = useState(null);
+  const [existingRx, setExistingRx] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState("");
+  const [error, setError] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const load = async () => {
     setLoading(true);
-    const data = await consultationService.getConsultationById(id);
-    setConsultation(data);
-    if (data) {
-      setForm({
-        chiefComplaint: data.chiefComplaint || "",
-        medicalHistory: data.medicalHistory || "",
-        examination: data.examination || "",
-        diagnosis: data.diagnosis || "",
-        notes: data.notes || "",
-        advice: data.advice || "",
-        followUp: data.followUp || "",
-      });
+    setError(null);
+    try {
+      const data = await consultationService.getConsultationById(id);
+      setConsultation(data);
+      if (data) {
+        setForm({
+          chiefComplaint: data.chiefComplaint || "",
+          medicalHistory: data.medicalHistory || "",
+          examination: data.examination || "",
+          diagnosis: data.diagnosis || "",
+          notes: data.notes || "",
+          advice: data.advice || "",
+          followUp: data.followUp || "",
+        });
 
-      // Consultation ke time par record ki gayi vitals; agar na milein
-      // to patient ki latest vitals dikha do.
-      try {
-        const cVitals = await vitalsService.getConsultationVitals(id);
-        if (cVitals?.length) {
-          setVitals(cVitals[0]);
-        } else if (data.patientId) {
-          const pVitals = await vitalsService.getPatientVitals(data.patientId);
-          setVitals(pVitals[0] || null);
+        // Consultation ke time par record ki gayi vitals; agar na milein
+        // to patient ki latest vitals dikha do.
+        try {
+          const cVitals = await vitalsService.getConsultationVitals(id);
+          if (cVitals?.length) {
+            setVitals(cVitals[0]);
+          } else if (data.patientId) {
+            const pVitals = await vitalsService.getPatientVitals(data.patientId);
+            setVitals(pVitals[0] || null);
+          }
+        } catch {
+          setVitals(null);
         }
-      } catch {
-        setVitals(null);
+
+        // Agar consultation Completed hai, to check karo ki iski
+        // prescription pehle se bani hui hai ya nahi.
+        if (data.status === "Completed") {
+          try {
+            const rx = await prescriptionService.getConsultationPrescription(id);
+            setExistingRx(rx);
+          } catch {
+            setExistingRx(null);
+          }
+        }
       }
+    } catch (err) {
+      setError(err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -74,40 +96,51 @@ export default function ConsultationDetails() {
     window.open(consultation.meetLink, "_blank");
   };
 
-  const handleCancel = async () => {
-    if (!window.confirm("Kya aap sach mein is consultation ko cancel karna chahte hain?")) return;
-    setSaving("cancel");
-    try {
-      await consultationService.cancelConsultation(id);
-      toast.success("Consultation cancelled");
-      load();
-    } catch (err) {
-      toast.error(err.message || "Cancel nahi ho paaya");
-    } finally {
-      setSaving("");
+  // Backend rule: submitClinicalDetails call hone ke saath hi consultation
+  // "Completed" ho jaati hai — isme koi "draft" concept nahi hai, isliye
+  // submit se pehle clearly confirm kar lete hain.
+  const handleSubmit = async () => {
+    if (!form.diagnosis || !form.diagnosis.trim()) {
+      toast.error("Diagnosis likhna zaroori hai.");
+      return;
     }
-  };
-
-  const handleSave = async ({ asDraft = false, complete = false } = {}) => {
-    setSaving(asDraft ? "draft" : complete ? "complete" : "save");
+    if (
+      !window.confirm(
+        "Submit karte hi yeh consultation 'Completed' ho jayegi aur dobara edit nahi ho payegi. Continue karein?"
+      )
+    ) {
+      return;
+    }
+    setSubmitting(true);
     try {
-      await consultationService.saveConsultation(id, form, { asDraft, complete });
-      if (asDraft) toast.success("Saved as draft");
-      else if (complete) toast.success("Consultation completed");
-      else toast.success("Consultation saved");
+      await consultationService.submitClinicalDetails(id, form);
+      toast.success("Consultation completed");
       await load();
     } catch (err) {
-      toast.error(err.message || "Save nahi ho paaya");
+      toast.error(friendlyError(err));
     } finally {
-      setSaving("");
+      setSubmitting(false);
     }
   };
 
   if (loading) return <div className="flex justify-center py-24"><Spinner size={32} /></div>;
+  if (error) {
+    return (
+      <Card>
+        <EmptyState
+          icon={error.status === 403 ? undefined : FiAlertTriangle}
+          title={error.status === 403 ? "Permission denied" : "Consultation load nahi hui"}
+          subtitle={friendlyError(error)}
+        />
+      </Card>
+    );
+  }
   if (!consultation) return <p className="text-muted">Consultation not found.</p>;
 
   const p = consultation.patient;
-  const readOnly = consultation.status === "Completed" || consultation.status === "Cancelled";
+  // Backend sirf "Scheduled" status wali consultation par hi clinical
+  // details submit karne deta hai.
+  const canSubmit = consultation.status === "Scheduled";
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} className="space-y-5">
@@ -125,17 +158,10 @@ export default function ConsultationDetails() {
             {formatDate(consultation.date)} • {consultation.time} • {consultation.type}
           </p>
         </div>
-        {!readOnly && (
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" icon={FiXCircle} loading={saving === "cancel"} onClick={handleCancel}>
-              Cancel
-            </Button>
-            {consultation.meetLink && (
-              <Button icon={FiVideo} onClick={handleJoinMeet}>
-                Join Google Meet
-              </Button>
-            )}
-          </div>
+        {canSubmit && consultation.meetLink && (
+          <Button icon={FiVideo} onClick={handleJoinMeet}>
+            Join Google Meet
+          </Button>
         )}
       </Card>
 
@@ -148,9 +174,15 @@ export default function ConsultationDetails() {
               <div className="flex justify-between"><span className="text-muted">Gender</span><span className="font-medium">{p?.gender}</span></div>
               <div className="flex justify-between"><span className="text-muted">Mobile</span><span className="font-medium">{p?.mobile}</span></div>
             </div>
-            <Link to={`/doctor/patients/${p?.id}`} className="text-sm text-primary font-medium hover:underline block mt-3 pt-3 border-t border-slate-100">
-              View Full Patient Profile →
-            </Link>
+            {p?.id ? (
+              <Link to={`/doctor/patients/${p.id}`} className="text-sm text-primary font-medium hover:underline block mt-3 pt-3 border-t border-slate-100">
+                View Full Patient Profile →
+              </Link>
+            ) : (
+              <p className="text-xs text-muted block mt-3 pt-3 border-t border-slate-100">
+                Patient profile abhi load nahi ho payi.
+              </p>
+            )}
           </Card>
 
           {vitals && (
@@ -172,6 +204,12 @@ export default function ConsultationDetails() {
         <div className="lg:col-span-2 space-y-5">
           <Card className="space-y-4">
             <p className="font-semibold text-navy">Consultation</p>
+            {!canSubmit && (
+              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                Yeh consultation "{consultation.status}" status mein hai, isliye clinical details ab
+                edit/submit nahi ki ja sakti (sirf "Scheduled" consultations editable hoti hain).
+              </p>
+            )}
             {FIELDS.map((f) => (
               <Textarea
                 key={f.key}
@@ -179,7 +217,7 @@ export default function ConsultationDetails() {
                 placeholder={f.placeholder}
                 value={form[f.key]}
                 onChange={(e) => handleChange(f.key, e.target.value)}
-                disabled={readOnly}
+                disabled={!canSubmit}
                 rows={f.key === "chiefComplaint" || f.key === "diagnosis" ? 2 : 3}
               />
             ))}
@@ -189,28 +227,32 @@ export default function ConsultationDetails() {
               rows={2}
               value={form.followUp}
               onChange={(e) => handleChange("followUp", e.target.value)}
-              disabled={readOnly}
+              disabled={!canSubmit}
             />
           </Card>
 
-          {!readOnly && (
+          {canSubmit && (
             <div className="flex flex-wrap gap-3 justify-end">
-              <Button variant="outline" icon={FiSave} loading={saving === "draft"} onClick={() => handleSave({ asDraft: true })}>
-                Save Draft
+              <Button icon={FiCheckCircle} loading={submitting} onClick={handleSubmit}>
+                Submit &amp; Complete Consultation
               </Button>
-              <Button variant="secondary" icon={FiCheckCircle} loading={saving === "save"} onClick={() => handleSave()}>
-                Save Consultation
-              </Button>
-              <Button
-                icon={FiFileText}
-                loading={saving === "complete"}
-                onClick={async () => {
-                  await handleSave({ complete: true });
-                  navigate(`/doctor/prescriptions/create?consultationId=${id}&patientId=${p?.id}`);
-                }}
-              >
-                Create Prescription
-              </Button>
+            </div>
+          )}
+
+          {consultation.status === "Completed" && (
+            <div className="flex flex-wrap gap-3 justify-end">
+              {existingRx ? (
+                <Button icon={FiFileText} onClick={() => navigate(`/doctor/prescriptions/${existingRx.id}`)}>
+                  View Prescription
+                </Button>
+              ) : (
+                <Button
+                  icon={FiFileText}
+                  onClick={() => navigate(`/doctor/prescriptions/create?consultationId=${id}`)}
+                >
+                  Create Prescription
+                </Button>
+              )}
             </div>
           )}
         </div>

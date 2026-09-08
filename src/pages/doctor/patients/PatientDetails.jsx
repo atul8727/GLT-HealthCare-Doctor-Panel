@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
-import { FiArrowLeft, FiPlayCircle, FiPlus, FiFileText } from "react-icons/fi";
+import { FiArrowLeft, FiPlayCircle, FiPlus, FiFileText, FiAlertTriangle } from "react-icons/fi";
 import { patientService } from "../../../services/patients/patientService";
 import { vitalsService } from "../../../services/vitals/vitalsService";
+import { friendlyError } from "../../../utils/errorMessage";
 import Card from "../../../components/ui/Card";
 import Button from "../../../components/ui/Button";
 import Input from "../../../components/ui/Input";
@@ -14,6 +15,7 @@ import StatusBadge from "../../../components/common/StatusBadge";
 import VitalsCard from "../../../components/common/VitalsCard";
 import EmptyState from "../../../components/ui/EmptyState";
 import { formatDate } from "../../../utils/formatDate";
+import { avatarColor, initialsOf } from "../../../utils/avatarColor";
 
 const TABS = ["Overview", "Vitals", "Consultations", "Prescriptions"];
 
@@ -28,6 +30,7 @@ export default function PatientDetails() {
   const [vitalsHistory, setVitalsHistory] = useState([]);
   const [tab, setTab] = useState("Overview");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const [vitalsForm, setVitalsForm] = useState(EMPTY_VITALS_FORM);
   const [showVitalsForm, setShowVitalsForm] = useState(false);
@@ -43,18 +46,29 @@ export default function PatientDetails() {
   };
 
   useEffect(() => {
+    if (!id || id === "undefined") {
+      setLoading(false);
+      setError({ message: "Patient ID missing hai." });
+      return;
+    }
     (async () => {
       setLoading(true);
-      const [p, c, rx] = await Promise.all([
-        patientService.getPatientById(id),
-        patientService.getPatientConsultations(id),
-        patientService.getPatientPrescriptions(id),
-      ]);
-      setPatient(p);
-      setConsultations(c);
-      setPrescriptions(rx);
-      await loadVitals();
-      setLoading(false);
+      setError(null);
+      try {
+        const [p, c, rx] = await Promise.all([
+          patientService.getPatientById(id),
+          patientService.getPatientConsultations(id).catch(() => []),
+          patientService.getPatientPrescriptions(id).catch(() => []),
+        ]);
+        setPatient(p);
+        setConsultations(c);
+        setPrescriptions(rx);
+        await loadVitals();
+      } catch (err) {
+        setError(err);
+      } finally {
+        setLoading(false);
+      }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
@@ -75,11 +89,23 @@ export default function PatientDetails() {
   };
 
   if (loading) return <div className="flex justify-center py-24"><Spinner size={32} /></div>;
+  if (error) {
+    return (
+      <Card>
+        <EmptyState
+          icon={error.status === 403 ? undefined : FiAlertTriangle}
+          title={error.status === 403 ? "Permission denied" : "Patient load nahi ho paya"}
+          subtitle={friendlyError(error)}
+        />
+      </Card>
+    );
+  }
   if (!patient) return <EmptyState title="Patient not found" />;
 
-  const initials = patient.name.split(" ").map((n) => n[0]).slice(0, 2).join("");
+  const initials = initialsOf(patient.name);
   const nextConsultation = consultations.find((c) => c.status === "Scheduled");
   const latestVitals = vitalsHistory[0] || null;
+  const lastCompletedConsultation = consultations.find((c) => c.status === "Completed");
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} className="space-y-5">
@@ -89,7 +115,7 @@ export default function PatientDetails() {
 
       <Card className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-full bg-primary-light text-primary flex items-center justify-center font-bold text-lg shrink-0">
+          <div className={`w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-lg shrink-0 shadow-sm ${avatarColor(patient.id)}`}>
             {initials}
           </div>
           <div>
@@ -110,25 +136,65 @@ export default function PatientDetails() {
       <Tabs tabs={TABS} active={tab} onChange={setTab} />
 
       {tab === "Overview" && (
-        <Card>
-          <p className="font-semibold text-navy mb-4">Patient Information</p>
-          <div className="grid sm:grid-cols-2 gap-x-8 gap-y-4 text-sm">
-            {[
-              ["Name", patient.name],
-              ["Patient ID", patient.id],
-              ["Age", patient.age],
-              ["Gender", patient.gender],
-              ["Mobile", patient.mobile],
-              ["Email", patient.email],
-              ["Address", patient.address],
-            ].map(([label, val]) => (
-              <div key={label} className="flex justify-between border-b border-slate-100 pb-2">
-                <span className="text-muted">{label}</span>
-                <span className="font-medium text-navy text-right">{val || "—"}</span>
+        <div className="space-y-5">
+          <Card>
+            <p className="font-semibold text-navy mb-2">Medical Summary</p>
+            <p className="text-xs text-muted mb-4">
+              Consultation shuru karne se pehle patient ki poori picture — taaki aap sahi tareeke se
+              consult kar sakein.
+            </p>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="border border-slate-200 rounded-xl p-4">
+                <p className="text-xs font-semibold text-muted uppercase mb-2">Last Diagnosis / Complaint</p>
+                {lastCompletedConsultation ? (
+                  <>
+                    <p className="font-medium text-navy">{lastCompletedConsultation.diagnosis || "—"}</p>
+                    <p className="text-sm text-muted mt-1">{lastCompletedConsultation.chiefComplaint || "—"}</p>
+                    <p className="text-xs text-muted mt-2">{formatDate(lastCompletedConsultation.date)}</p>
+                  </>
+                ) : (
+                  <p className="text-sm text-muted">Koi past consultation nahi mili.</p>
+                )}
               </div>
-            ))}
-          </div>
-        </Card>
+              <div className="border border-slate-200 rounded-xl p-4">
+                <p className="text-xs font-semibold text-muted uppercase mb-2">Latest Vitals</p>
+                {latestVitals ? (
+                  <>
+                    <p className="text-sm text-navy">
+                      BP {latestVitals.bp || "—"} • Pulse {latestVitals.pulse || "—"} • Temp {latestVitals.temperature || "—"}
+                    </p>
+                    <p className="text-sm text-navy mt-1">
+                      SpO₂ {latestVitals.spo2 || "—"} • Weight {latestVitals.weight || "—"} kg
+                    </p>
+                    <p className="text-xs text-muted mt-2">{formatDate(latestVitals.date)}</p>
+                  </>
+                ) : (
+                  <p className="text-sm text-muted">Koi vitals record nahi hai.</p>
+                )}
+              </div>
+            </div>
+          </Card>
+
+          <Card>
+            <p className="font-semibold text-navy mb-4">Patient Information</p>
+            <div className="grid sm:grid-cols-2 gap-x-8 gap-y-4 text-sm">
+              {[
+                ["Name", patient.name],
+                ["Patient ID", patient.id],
+                ["Age", patient.age],
+                ["Gender", patient.gender],
+                ["Mobile", patient.mobile],
+                ["Email", patient.email],
+                ["Address", patient.address],
+              ].map(([label, val]) => (
+                <div key={label} className="flex justify-between border-b border-slate-100 pb-2">
+                  <span className="text-muted">{label}</span>
+                  <span className="font-medium text-navy text-right">{val || "—"}</span>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
       )}
 
       {tab === "Vitals" && (
@@ -249,9 +315,9 @@ export default function PatientDetails() {
                   className="flex items-center justify-between py-3.5 hover:bg-slate-50 -mx-5 px-5 transition-colors"
                 >
                   <div>
-                    <p className="text-sm font-medium text-navy">{rx.id}</p>
+                    <p className="text-sm font-medium text-navy">Prescription #{rx.id}</p>
                     <p className="text-xs text-muted mt-0.5">
-                      {rx.diagnosis} • {formatDate(rx.date)}
+                      {rx.medicines?.length || 0} medicine(s) • {formatDate(rx.date)}
                     </p>
                   </div>
                   <span className="text-sm text-primary font-medium">View →</span>

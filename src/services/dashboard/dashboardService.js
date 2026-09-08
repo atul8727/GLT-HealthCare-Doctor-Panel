@@ -10,10 +10,15 @@ function todayStr() {
 }
 
 async function getStats() {
-  const [consultations, patients] = await Promise.all([
+  // Dono calls independently try karte hain — agar patients list
+  // permission (403) ki wajah se fail ho jaaye, tab bhi consultation
+  // based stats (today's/upcoming/completed) dikhte rahenge.
+  const [consultationsResult, patientsResult] = await Promise.allSettled([
     consultationService.getConsultations("All"),
     patientService.getPatients(),
   ]);
+  const consultations = consultationsResult.status === "fulfilled" ? consultationsResult.value : [];
+  const patients = patientsResult.status === "fulfilled" ? patientsResult.value : [];
   const today = todayStr();
   return {
     todaysConsultations: consultations.filter((c) => c.date === today).length,

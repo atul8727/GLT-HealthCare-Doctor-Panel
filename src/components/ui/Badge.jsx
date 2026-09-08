@@ -3,6 +3,7 @@ const styles = {
   success: "bg-green-100 text-success",
   warning: "bg-amber-100 text-warning",
   danger: "bg-red-100 text-danger",
+  rose: "bg-rose-100 text-rose-600",
   neutral: "bg-slate-100 text-muted",
 };
 

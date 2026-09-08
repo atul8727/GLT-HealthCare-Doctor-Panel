@@ -16,3 +16,11 @@ body {
 
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Har data table mein row hover highlight — thoda color/life add karta hai */
+table tbody tr {
+  transition: background-color 120ms ease;
+}
+table tbody tr:hover {
+  background-color: rgba(37, 99, 235, 0.04);
+}

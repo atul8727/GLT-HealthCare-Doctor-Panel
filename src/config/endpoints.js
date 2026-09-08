@@ -1,16 +1,14 @@
 // Real backend (GLT Healthcare API) ke actual routes.
-// Admin ke Postman collection (Admin.postman_collection.json) se liye gaye hain.
+// "Doctors" Postman collection (doctor-role ke liye jo actually
+// available/working hain, verified responses ke saath) se liye gaye hain.
 export const ENDPOINTS = {
   auth: {
     login: "/auth/login",
   },
-  doctors: {
-    // Doctor apni khud ki profile GET/UPDATE karta hai isi id se (login response ka doctor_id).
-    detail: (id) => `/doctors/${id}`,
-    password: (id) => `/doctors/${id}/password`,
-  },
   patients: {
-    list: "/patients",
+    // Doctor role ke liye plain "/patients" 403 deta hai (woh admin-only hai) —
+    // doctor sirf apne assigned patients "/patients/my-patients" se dekh sakta hai.
+    myPatients: "/patients/my-patients",
     detail: (id) => `/patients/${id}`,
   },
   vitals: {
@@ -24,6 +22,13 @@ export const ENDPOINTS = {
     list: "/consultations",
     detail: (id) => `/consultations/${id}`,
     clinical: (id) => `/consultations/${id}/clinical`,
-    cancel: (id) => `/consultations/${id}/cancel`,
+  },
+  prescriptions: {
+    // Prescription hamesha ek consultation se linked hoti hai (consultation
+    // ko Completed hone ke baad hi ban sakti hai).
+    create: (consultationId) => `/prescriptions/consultation/${consultationId}`,
+    byConsultation: (consultationId) => `/prescriptions/consultation/${consultationId}`,
+    byId: (id) => `/prescriptions/${id}`,
+    byPatient: (patientId) => `/prescriptions/patient/${patientId}`,
   },
 };

@@ -65,13 +65,43 @@ export function normalizeVitals(v) {
   };
 }
 
+export function normalizeMedicine(m) {
+  if (!m) return null;
+  return {
+    id: pick(m, ["medicine_id", "id"], undefined),
+    name: pick(m, ["medicine_name", "name"], ""),
+    dosage: pick(m, ["dosage"], ""),
+    frequency: pick(m, ["frequency"], ""),
+    duration: pick(m, ["duration"], ""),
+    instructions: pick(m, ["instructions"], ""),
+  };
+}
+
+export function normalizePrescription(p) {
+  if (!p) return null;
+  return {
+    id: pick(p, ["prescription_id", "id", "_id"]),
+    consultationId: pick(p, ["consultation_id", "consultationId"]),
+    patientId: pick(p, ["patient_id", "patientId"]),
+    doctorId: pick(p, ["doctor_id", "doctorId"]),
+    testsRecommended: pick(p, ["tests_recommended", "testsRecommended"], ""),
+    additionalAdvice: pick(p, ["additional_advice", "additionalAdvice"], ""),
+    followUpDate: pick(p, ["follow_up_date", "followUpDate"], ""),
+    date: pick(p, ["created_at", "date"], ""),
+    medicines: Array.isArray(p.medicines) ? p.medicines.map(normalizeMedicine) : [],
+    patient: p.patient ? normalizePatient(p.patient) : null,
+  };
+}
+
 export function normalizeConsultation(c, patient) {
   if (!c) return null;
   return {
     id: pick(c, ["consultation_id", "id", "_id"]),
     patientId: pick(c, ["patient_id", "patientId"]),
-    date: pick(c, ["date", "consultation_date", "scheduled_date"], ""),
-    time: pick(c, ["time", "scheduled_time"], ""),
+    // date: pick(c, ["date", "consultation_date", "scheduled_date"], ""),
+    // time: pick(c, ["time", "scheduled_time"], ""),
+    date: pick(c, ["consultation_date", "date", "scheduled_date"], ""),
+    time: pick(c, ["consultation_time", "time", "scheduled_time"], ""),
     type: pick(c, ["type", "consultation_type"], "Online"),
     status: pick(c, ["status"], "Scheduled"),
     meetLink: pick(c, ["meet_link", "meetLink", "google_meet_link"], ""),
