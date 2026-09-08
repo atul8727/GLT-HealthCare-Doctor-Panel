@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
-import { FiSave, FiFileText } from "react-icons/fi";
-import { patientService } from "../../../services/patients/patientService";
+import { FiFileText, FiAlertTriangle } from "react-icons/fi";
 import { consultationService } from "../../../services/consultations/consultationService";
 import { prescriptionService } from "../../../services/prescriptions/prescriptionService";
 import { useAuth } from "../../../hooks/useAuth";
@@ -12,22 +11,29 @@ import Input from "../../../components/ui/Input";
 import Textarea from "../../../components/ui/Textarea";
 import Button from "../../../components/ui/Button";
 import Spinner from "../../../components/ui/Spinner";
+import EmptyState from "../../../components/ui/EmptyState";
 import MedicineForm from "../../../components/prescriptions/MedicineForm";
 import PrescriptionPreview from "../../../components/prescriptions/PrescriptionPreview";
+import { friendlyError } from "../../../utils/errorMessage";
+
+// Backend rule: prescription hamesha ek consultation se banti hai,
+// aur sirf tabhi jab woh consultation "Completed" ho chuki ho.
+// "diagnosis" prescription ka apna field nahi hai — woh consultation
+// ke clinical details mein pehle hi save ho chuka hota hai, yahan
+// sirf reference ke liye dikhaya jaata hai.
 
 export default function CreatePrescription() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const patientId = params.get("patientId");
   const consultationId = params.get("consultationId");
 
-  const [patient, setPatient] = useState(null);
   const [consultation, setConsultation] = useState(null);
+  const [existingRx, setExistingRx] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
 
-  const [diagnosis, setDiagnosis] = useState("");
   const [medicines, setMedicines] = useState([
     { id: "MED-1", name: "", dosage: "", frequency: "", duration: "", instructions: "" },
   ]);
@@ -36,57 +42,120 @@ export default function CreatePrescription() {
   const [followUpDate, setFollowUpDate] = useState("");
 
   useEffect(() => {
+    if (!consultationId) {
+      setLoading(false);
+      setError({ message: "Consultation ID missing hai." });
+      return;
+    }
     (async () => {
       setLoading(true);
-      const p = await patientService.getPatientById(patientId);
-      setPatient(p);
-      if (consultationId) {
-        const c = await consultationService.getConsultationById(consultationId);
+      setError(null);
+      try {
+        const [c, rx] = await Promise.all([
+          consultationService.getConsultationById(consultationId),
+          prescriptionService.getConsultationPrescription(consultationId),
+        ]);
         setConsultation(c);
-        setDiagnosis(c?.diagnosis || "");
+        setExistingRx(rx);
         setAdditionalAdvice(c?.advice || "");
         setFollowUpDate(c?.followUp || "");
+      } catch (err) {
+        setError(err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     })();
-  }, [patientId, consultationId]);
+  }, [consultationId]);
 
-  const previewData = { diagnosis, medicines, testsRecommended, additionalAdvice, followUpDate, date: "2026-09-03" };
+  const previewData = {
+    diagnosis: consultation?.diagnosis,
+    medicines,
+    testsRecommended,
+    additionalAdvice,
+    followUpDate,
+    date: new Date().toISOString().slice(0, 10),
+  };
 
-  const handleGenerate = async ({ asDraft = false } = {}) => {
+  const handleGenerate = async () => {
     setSaving(true);
-    const created = await prescriptionService.createPrescription({
-      patientId,
-      consultationId,
-      diagnosis,
-      medicines: medicines.filter((m) => m.name.trim()),
-      testsRecommended,
-      additionalAdvice,
-      followUpDate,
-      status: asDraft ? "Draft" : "Generated",
-    });
-    setSaving(false);
-    toast.success(asDraft ? "Prescription saved as draft" : `Prescription ${created.id} generated`);
-    if (!asDraft) navigate(`/doctor/prescriptions/${created.id}`);
+    try {
+      const created = await prescriptionService.createPrescription(consultationId, {
+        medicines,
+        testsRecommended,
+        additionalAdvice,
+        followUpDate,
+      });
+      toast.success("Prescription generated");
+      navigate(`/doctor/prescriptions/${created.id}`);
+    } catch (err) {
+      toast.error(friendlyError(err));
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (loading) return <div className="flex justify-center py-24"><Spinner size={32} /></div>;
+
+  if (error) {
+    return (
+      <Card>
+        <EmptyState icon={FiAlertTriangle} title="Load nahi ho paya" subtitle={friendlyError(error)} />
+      </Card>
+    );
+  }
+
+  if (consultation && consultation.status !== "Completed") {
+    return (
+      <Card>
+        <EmptyState
+          icon={FiAlertTriangle}
+          title="Consultation abhi Completed nahi hai"
+          subtitle={`Prescription sirf "Completed" consultation ke liye ban sakti hai. Iska status abhi "${consultation.status}" hai — pehle clinical details submit karke consultation complete karein.`}
+        />
+        <div className="flex justify-center mt-2">
+          <Link to={`/doctor/consultations/${consultationId}`}>
+            <Button variant="outline" size="sm">Consultation par jaayein</Button>
+          </Link>
+        </div>
+      </Card>
+    );
+  }
+
+  if (existingRx) {
+    return (
+      <Card>
+        <EmptyState
+          icon={FiFileText}
+          title="Is consultation ki prescription pehle se ban chuki hai"
+          subtitle="Ek consultation ke liye sirf ek hi prescription ban sakti hai."
+        />
+        <div className="flex justify-center mt-2">
+          <Link to={`/doctor/prescriptions/${existingRx.id}`}>
+            <Button size="sm">Prescription dekhein</Button>
+          </Link>
+        </div>
+      </Card>
+    );
+  }
+
+  const patient = consultation?.patient;
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} className="space-y-5">
       <div>
         <h1 className="text-xl font-bold text-navy">Create Prescription</h1>
         <p className="text-sm text-muted mt-1">
-          Patient: <span className="font-medium text-navy">{patient?.name}</span> • Doctor:{" "}
-          <span className="font-medium text-navy">{user?.name}</span>
-          {consultation && <> • Consultation: <span className="font-medium text-navy">{consultation.id}</span></>}
+          Patient: <span className="font-medium text-navy">{patient?.name || "—"}</span> • Doctor:{" "}
+          <span className="font-medium text-navy">{user?.name}</span> • Consultation:{" "}
+          <span className="font-medium text-navy">#{consultationId}</span>
         </p>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-5 items-start">
         <div className="lg:col-span-2 space-y-5">
           <Card>
-            <Input label="Diagnosis" value={diagnosis} onChange={(e) => setDiagnosis(e.target.value)} placeholder="e.g. Viral Fever" />
+            <p className="text-xs text-muted uppercase font-semibold mb-1">Diagnosis (consultation se)</p>
+            <p className="font-medium text-navy">{consultation?.diagnosis || "—"}</p>
           </Card>
 
           <Card>
@@ -101,10 +170,7 @@ export default function CreatePrescription() {
           </Card>
 
           <div className="flex flex-wrap gap-3 justify-end">
-            <Button variant="outline" icon={FiSave} loading={saving} onClick={() => handleGenerate({ asDraft: true })}>
-              Save Draft
-            </Button>
-            <Button icon={FiFileText} loading={saving} onClick={() => handleGenerate()}>
+            <Button icon={FiFileText} loading={saving} onClick={handleGenerate}>
               Generate Prescription
             </Button>
           </div>

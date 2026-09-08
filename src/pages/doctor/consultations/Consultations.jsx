@@ -7,12 +7,14 @@ import Card from "../../../components/ui/Card";
 import Table from "../../../components/ui/Table";
 import Tabs from "../../../components/ui/Tabs";
 import Button from "../../../components/ui/Button";
+import Badge from "../../../components/ui/Badge";
 import Spinner from "../../../components/ui/Spinner";
 import EmptyState from "../../../components/ui/EmptyState";
 import StatusBadge from "../../../components/common/StatusBadge";
 import { formatDate } from "../../../utils/formatDate";
 import { friendlyError } from "../../../utils/errorMessage";
-import { FiAlertTriangle } from "react-icons/fi";
+import { avatarColor, initialsOf } from "../../../utils/avatarColor";
+import { FiAlertTriangle, FiVideo, FiEye } from "react-icons/fi";
 
 const FILTERS = ["All", "Today's", "Upcoming", "Completed", "Cancelled"];
 
@@ -61,15 +63,24 @@ export default function Consultations() {
           <Table columns={["Patient", "Date", "Time", "Type", "Status", "Action"]}>
             {consultations.map((c) => (
               <tr key={c.id}>
-                <td className="py-3 pr-4 font-medium text-navy whitespace-nowrap">{c.patient?.name}</td>
+                <td className="py-3 pr-4 whitespace-nowrap">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-xs shrink-0 shadow-sm ${avatarColor(c.patientId)}`}>
+                      {initialsOf(c.patient?.name)}
+                    </div>
+                    <span className="font-medium text-navy">{c.patient?.name || "—"}</span>
+                  </div>
+                </td>
                 <td className="py-3 pr-4 text-muted whitespace-nowrap">{formatDate(c.date)}</td>
                 <td className="py-3 pr-4 text-muted whitespace-nowrap">{c.time}</td>
-                <td className="py-3 pr-4 text-muted">{c.type}</td>
+                <td className="py-3 pr-4">
+                  <Badge color={c.type === "Online" ? "primary" : "neutral"}>{c.type}</Badge>
+                </td>
                 <td className="py-3 pr-4"><StatusBadge status={c.status} /></td>
                 <td className="py-3 pr-4">
                   <Link to={`/doctor/consultations/${c.id}`}>
-                    <Button size="sm" variant="outline">
-                      {c.status === "Completed" ? "View" : "Open"}
+                    <Button size="sm" variant={c.status === "Scheduled" ? "primary" : "secondary"} icon={c.status === "Scheduled" ? FiVideo : FiEye}>
+                      {c.status === "Completed" ? "View" : c.status === "Scheduled" ? "Open" : "View"}
                     </Button>
                   </Link>
                 </td>

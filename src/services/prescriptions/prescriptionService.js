@@ -1,52 +1,77 @@
-import { mockDelay } from "../mockDelay";
-import { prescriptionStorage } from "../../utils/storage";
-import { patientService } from "../patients/patientService";
+import { ENDPOINTS } from "../../config/endpoints";
+import { apiClient } from "../apiClient";
+import { normalizePrescription } from "../../utils/normalize";
 
-// Backend (admin ke Postman collection) mein Prescription ke liye
-// koi API endpoint hi nahi diya gaya hai, isliye yeh feature filhaal
-// sirf is browser mein locally store hota hai. Jaise hi backend team
-// prescription ka REST endpoint deti hai, bas neeche wale functions
-// ko apiClient.post/get calls se replace kar dena — baaki UI pages
-// mein kuch badalne ki zaroorat nahi padegi.
+// Ab prescriptions bhi pura real backend API se aati/jaati hain
+// ("Doctors" Postman collection). Important backend rules:
+// - Prescription hamesha ek consultation se create hoti hai, aur
+//   sirf tabhi ban sakti hai jab consultation "Completed" ho chuki ho.
+// - Ek consultation ki sirf ek hi prescription ho sakti hai.
+// - "diagnosis" prescription ka field nahi hai — woh consultation ke
+//   clinical details mein already store hota hai.
 
-async function attachPatient(rx) {
+function isNotFound(err) {
+  return err?.status === 404 || /no prescription found/i.test(err?.message || "");
+}
+
+// Agar us consultation ki abhi tak koi prescription nahi bani, to
+// backend "success:false, No prescription found..." deta hai — usko
+// error ki jagah simply "null" treat karte hain (normal/expected state).
+async function getConsultationPrescription(consultationId) {
   try {
-    const patient = await patientService.getPatientById(rx.patientId);
-    return { ...rx, patient };
-  } catch {
-    return rx;
+    const data = await apiClient.get(ENDPOINTS.prescriptions.byConsultation(consultationId));
+    return normalizePrescription(data);
+  } catch (err) {
+    if (isNotFound(err)) return null;
+    throw err;
   }
 }
 
-async function getPrescriptions() {
-  const list = prescriptionStorage
-    .getAll()
-    .sort((a, b) => new Date(b.date) - new Date(a.date));
-  const withPatients = await Promise.all(list.map(attachPatient));
-  return mockDelay(withPatients);
-}
-
 async function getPrescriptionById(id) {
-  const rx = prescriptionStorage.getAll().find((x) => x.id === id);
-  if (!rx) return mockDelay(null);
-  const patient = await patientService.getPatientById(rx.patientId).catch(() => null);
-  return mockDelay({ ...rx, patient });
+  const data = await apiClient.get(ENDPOINTS.prescriptions.byId(id));
+  return normalizePrescription(data);
 }
 
-async function createPrescription(payload) {
-  const all = prescriptionStorage.getAll();
-  const year = new Date().getFullYear();
-  const seq = String(1000 + all.length + 1).slice(-5);
-  const id = `RX-${year}-${seq}`;
-  const newRx = {
-    id,
-    date: new Date().toISOString().slice(0, 10),
-    status: "Generated",
-    ...payload,
+async function getPatientPrescriptions(patientId) {
+  try {
+    const data = await apiClient.get(ENDPOINTS.prescriptions.byPatient(patientId));
+    const list = Array.isArray(data) ? data : data?.prescriptions || [];
+    return list.map(normalizePrescription).sort((a, b) => new Date(b.date) - new Date(a.date));
+  } catch (err) {
+    if (isNotFound(err)) return [];
+    throw err;
+  }
+}
+
+async function createPrescription(consultationId, form) {
+  const medicines = (form.medicines || [])
+    .filter((m) => m.name?.trim())
+    .map((m) => ({
+      medicine_name: m.name,
+      dosage: m.dosage || "",
+      frequency: m.frequency || "",
+      duration: m.duration || "",
+      instructions: m.instructions || "",
+    }));
+
+  if (medicines.length === 0) {
+    throw new Error("Kam se kam ek medicine add karna zaroori hai.");
+  }
+
+  const payload = {
+    tests_recommended: form.testsRecommended || "",
+    additional_advice: form.additionalAdvice || "",
+    ...(form.followUpDate ? { follow_up_date: form.followUpDate } : {}),
+    medicines,
   };
-  all.push(newRx);
-  prescriptionStorage.setAll(all);
-  return mockDelay(newRx);
+
+  const data = await apiClient.post(ENDPOINTS.prescriptions.create(consultationId), payload);
+  return normalizePrescription(data);
 }
 
-export const prescriptionService = { getPrescriptions, getPrescriptionById, createPrescription };
+export const prescriptionService = {
+  getConsultationPrescription,
+  getPrescriptionById,
+  getPatientPrescriptions,
+  createPrescription,
+};

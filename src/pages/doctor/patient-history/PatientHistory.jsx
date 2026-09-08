@@ -1,15 +1,18 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { FiFileText, FiAlertTriangle } from "react-icons/fi";
+import { FiFileText, FiAlertTriangle, FiEye } from "react-icons/fi";
 import { consultationService } from "../../../services/consultations/consultationService";
+import { prescriptionService } from "../../../services/prescriptions/prescriptionService";
 import Card from "../../../components/ui/Card";
 import Table from "../../../components/ui/Table";
 import Button from "../../../components/ui/Button";
+import Badge from "../../../components/ui/Badge";
 import EmptyState from "../../../components/ui/EmptyState";
 import Spinner from "../../../components/ui/Spinner";
 import { formatDate } from "../../../utils/formatDate";
 import { friendlyError } from "../../../utils/errorMessage";
+import { avatarColor, initialsOf } from "../../../utils/avatarColor";
 
 export default function PatientHistory() {
   const [records, setRecords] = useState([]);
@@ -26,7 +29,15 @@ export default function PatientHistory() {
         // to bhi best-effort fetch karta hai), isliye alag se
         // getPatients() call karne ki zaroorat nahi.
         const all = await consultationService.getConsultations("Completed");
-        const merged = all.map((c) => ({ ...c, patientName: c.patient?.name || "—" }));
+        // Har consultation ki actual prescription (agar bani ho) bhi
+        // fetch karte hain, taaki "Prescription" column sahi cheez
+        // dikhaye — pehle yeh hamesha generic list ka link deta tha.
+        const merged = await Promise.all(
+          all.map(async (c) => {
+            const rx = await prescriptionService.getConsultationPrescription(c.id).catch(() => null);
+            return { ...c, patientName: c.patient?.name || "—", prescription: rx };
+          })
+        );
         setRecords(merged);
       } catch (err) {
         setError(err);
@@ -58,17 +69,28 @@ export default function PatientHistory() {
           <Table columns={["Patient", "Consultation Date", "Diagnosis", "Prescription", "Action"]}>
             {records.map((r) => (
               <tr key={r.id}>
-                <td className="py-3 pr-4 font-medium text-navy whitespace-nowrap">{r.patientName}</td>
+                <td className="py-3 pr-4 whitespace-nowrap">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-xs shrink-0 shadow-sm ${avatarColor(r.patientId)}`}>
+                      {initialsOf(r.patientName)}
+                    </div>
+                    <span className="font-medium text-navy">{r.patientName}</span>
+                  </div>
+                </td>
                 <td className="py-3 pr-4 text-muted whitespace-nowrap">{formatDate(r.date)}</td>
                 <td className="py-3 pr-4 text-muted">{r.diagnosis || "—"}</td>
-                <td className="py-3 pr-4 text-muted">
-                  <Link to="/doctor/prescriptions" className="text-primary hover:underline">
-                    View
-                  </Link>
+                <td className="py-3 pr-4">
+                  {r.prescription ? (
+                    <Link to={`/doctor/prescriptions/${r.prescription.id}`}>
+                      <Badge color="success">Available</Badge>
+                    </Link>
+                  ) : (
+                    <Badge color="neutral">Not created</Badge>
+                  )}
                 </td>
                 <td className="py-3 pr-4">
                   <Link to={`/doctor/consultations/${r.id}`}>
-                    <Button size="sm" variant="outline">Open</Button>
+                    <Button size="sm" variant="secondary" icon={FiEye}>Open</Button>
                   </Link>
                 </td>
               </tr>

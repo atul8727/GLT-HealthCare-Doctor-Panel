@@ -5,10 +5,10 @@ export default function Tabs({ tabs, active, onChange }) {
         <button
           key={tab}
           onClick={() => onChange(tab)}
-          className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+          className={`px-4 py-2.5 text-sm font-semibold whitespace-nowrap border-b-2 rounded-t-md transition-colors ${
             active === tab
-              ? "border-primary text-primary"
-              : "border-transparent text-muted hover:text-navy"
+              ? "border-primary text-primary bg-primary-light/60"
+              : "border-transparent text-muted hover:text-navy hover:bg-slate-50"
           }`}
         >
           {tab}

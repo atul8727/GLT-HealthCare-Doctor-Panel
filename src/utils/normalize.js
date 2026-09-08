@@ -65,6 +65,34 @@ export function normalizeVitals(v) {
   };
 }
 
+export function normalizeMedicine(m) {
+  if (!m) return null;
+  return {
+    id: pick(m, ["medicine_id", "id"], undefined),
+    name: pick(m, ["medicine_name", "name"], ""),
+    dosage: pick(m, ["dosage"], ""),
+    frequency: pick(m, ["frequency"], ""),
+    duration: pick(m, ["duration"], ""),
+    instructions: pick(m, ["instructions"], ""),
+  };
+}
+
+export function normalizePrescription(p) {
+  if (!p) return null;
+  return {
+    id: pick(p, ["prescription_id", "id", "_id"]),
+    consultationId: pick(p, ["consultation_id", "consultationId"]),
+    patientId: pick(p, ["patient_id", "patientId"]),
+    doctorId: pick(p, ["doctor_id", "doctorId"]),
+    testsRecommended: pick(p, ["tests_recommended", "testsRecommended"], ""),
+    additionalAdvice: pick(p, ["additional_advice", "additionalAdvice"], ""),
+    followUpDate: pick(p, ["follow_up_date", "followUpDate"], ""),
+    date: pick(p, ["created_at", "date"], ""),
+    medicines: Array.isArray(p.medicines) ? p.medicines.map(normalizeMedicine) : [],
+    patient: p.patient ? normalizePatient(p.patient) : null,
+  };
+}
+
 export function normalizeConsultation(c, patient) {
   if (!c) return null;
   return {

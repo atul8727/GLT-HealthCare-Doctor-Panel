@@ -1,41 +1,26 @@
-import { ENDPOINTS } from "../../config/endpoints";
-import { apiClient } from "../apiClient";
 import { authStorage } from "../../utils/storage";
-import { normalizeDoctor } from "../../utils/normalize";
 
-function currentDoctorId() {
-  const user = authStorage.getUser();
-  if (!user?.id) throw new Error("Doctor session not found. Please login again.");
-  return user.id;
-}
+// "Doctors" Postman collection (jo doctor-role token se actually
+// available hai) mein doctor apni profile GET/UPDATE karne ya
+// password change karne ka koi endpoint hi nahi hai — woh sab
+// admin-only hai. Isliye yahan network call nahi lagate (jo hamesha
+// 403 dega), balki jo info login response mein already mil chuki
+// hai (name, email, doctor_id, role) usi se profile dikhate hain.
 
 async function getProfile() {
-  const id = currentDoctorId();
-  const data = await apiClient.get(ENDPOINTS.doctors.detail(id));
-  const user = normalizeDoctor(data);
-  authStorage.setUser(user);
-  return user;
+  return authStorage.getUser();
 }
 
-// Backend ka updateDoctor endpoint sirf name, mobile aur
-// specialization accept karta hai — email login-id hai isliye
-// isse change nahi karwaya jaata.
-async function updateProfile(updates) {
-  const id = currentDoctorId();
-  const payload = {};
-  if (updates.name !== undefined) payload.name = updates.name;
-  if (updates.mobile !== undefined) payload.mobile = updates.mobile;
-  if (updates.specialization !== undefined) payload.specialization = updates.specialization;
-
-  const data = await apiClient.put(ENDPOINTS.doctors.detail(id), payload);
-  const user = normalizeDoctor({ ...authStorage.getUser(), ...data });
-  authStorage.setUser(user);
-  return user;
+async function updateProfile() {
+  throw new Error(
+    "Profile edit filhaal doctor account se available nahi hai — yeh admin ke through update hoti hai."
+  );
 }
 
-async function changePassword(newPassword) {
-  const id = currentDoctorId();
-  return apiClient.put(ENDPOINTS.doctors.password(id), { password: newPassword });
+async function changePassword() {
+  throw new Error(
+    "Password change filhaal doctor account se available nahi hai — apne admin/clinic se naya password set karwayein."
+  );
 }
 
 export const profileService = { getProfile, updateProfile, changePassword };

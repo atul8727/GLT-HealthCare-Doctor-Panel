@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import { FiArrowLeft, FiVideo, FiCheckCircle, FiFileText, FiAlertTriangle } from "react-icons/fi";
 import { consultationService } from "../../../services/consultations/consultationService";
 import { vitalsService } from "../../../services/vitals/vitalsService";
+import { prescriptionService } from "../../../services/prescriptions/prescriptionService";
 import Card from "../../../components/ui/Card";
 import Button from "../../../components/ui/Button";
 import Textarea from "../../../components/ui/Textarea";
@@ -30,6 +31,7 @@ export default function ConsultationDetails() {
   const [consultation, setConsultation] = useState(null);
   const [form, setForm] = useState({});
   const [vitals, setVitals] = useState(null);
+  const [existingRx, setExistingRx] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -63,6 +65,17 @@ export default function ConsultationDetails() {
           }
         } catch {
           setVitals(null);
+        }
+
+        // Agar consultation Completed hai, to check karo ki iski
+        // prescription pehle se bani hui hai ya nahi.
+        if (data.status === "Completed") {
+          try {
+            const rx = await prescriptionService.getConsultationPrescription(id);
+            setExistingRx(rx);
+          } catch {
+            setExistingRx(null);
+          }
         }
       }
     } catch (err) {
@@ -228,14 +241,18 @@ export default function ConsultationDetails() {
 
           {consultation.status === "Completed" && (
             <div className="flex flex-wrap gap-3 justify-end">
-              <Button
-                icon={FiFileText}
-                disabled={!p?.id}
-                title={!p?.id ? "Patient info load hone ka wait karein" : undefined}
-                onClick={() => navigate(`/doctor/prescriptions/create?consultationId=${id}&patientId=${p?.id || ""}`)}
-              >
-                Create Prescription
-              </Button>
+              {existingRx ? (
+                <Button icon={FiFileText} onClick={() => navigate(`/doctor/prescriptions/${existingRx.id}`)}>
+                  View Prescription
+                </Button>
+              ) : (
+                <Button
+                  icon={FiFileText}
+                  onClick={() => navigate(`/doctor/prescriptions/create?consultationId=${id}`)}
+                >
+                  Create Prescription
+                </Button>
+              )}
             </div>
           )}
         </div>

@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { FiClipboard } from "react-icons/fi";
+import { FiClipboard, FiAlertTriangle, FiEye } from "react-icons/fi";
+import { patientService } from "../../../services/patients/patientService";
 import { prescriptionService } from "../../../services/prescriptions/prescriptionService";
 import Card from "../../../components/ui/Card";
 import Table from "../../../components/ui/Table";
@@ -10,16 +11,42 @@ import Badge from "../../../components/ui/Badge";
 import EmptyState from "../../../components/ui/EmptyState";
 import Spinner from "../../../components/ui/Spinner";
 import { formatDate } from "../../../utils/formatDate";
+import { friendlyError } from "../../../utils/errorMessage";
+import { avatarColor, initialsOf } from "../../../utils/avatarColor";
 
+// Backend mein "saari prescriptions ek saath list karo" jaisa koi
+// dedicated endpoint nahi hai — sirf patient-wise ya consultation-wise
+// milti hain. Isliye yahan apne saare patients leke, har patient ki
+// prescriptions fetch karke ek combined list bana rahe hain. Agar
+// kisi ek patient ki fetch fail ho jaaye, poori list crash nahi hoti.
 export default function Prescriptions() {
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     (async () => {
       setLoading(true);
-      setList(await prescriptionService.getPrescriptions());
-      setLoading(false);
+      setError(null);
+      try {
+        const patients = await patientService.getPatients();
+        const results = await Promise.all(
+          patients.map(async (p) => {
+            try {
+              const rx = await prescriptionService.getPatientPrescriptions(p.id);
+              return rx.map((r) => ({ ...r, patient: p }));
+            } catch {
+              return [];
+            }
+          })
+        );
+        const flat = results.flat().sort((a, b) => new Date(b.date) - new Date(a.date));
+        setList(flat);
+      } catch (err) {
+        setError(err);
+      } finally {
+        setLoading(false);
+      }
     })();
   }, []);
 
@@ -33,20 +60,35 @@ export default function Prescriptions() {
       <Card>
         {loading ? (
           <div className="flex justify-center py-14"><Spinner /></div>
+        ) : error ? (
+          <EmptyState
+            icon={error.status === 403 ? undefined : FiAlertTriangle}
+            title={error.status === 403 ? "Permission denied" : "Load nahi ho paya"}
+            subtitle={friendlyError(error)}
+          />
         ) : list.length === 0 ? (
           <EmptyState icon={FiClipboard} title="No prescriptions yet" />
         ) : (
-          <Table columns={["Prescription ID", "Patient", "Date", "Diagnosis", "Status", "Action"]}>
+          <Table columns={["Prescription ID", "Patient", "Date", "Medicines", "Follow-up", "Action"]}>
             {list.map((rx) => (
               <tr key={rx.id}>
-                <td className="py-3 pr-4 font-medium text-navy whitespace-nowrap">{rx.id}</td>
-                <td className="py-3 pr-4 text-muted whitespace-nowrap">{rx.patient?.name}</td>
+                <td className="py-3 pr-4 font-medium text-navy whitespace-nowrap">#{rx.id}</td>
+                <td className="py-3 pr-4 whitespace-nowrap">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-xs shrink-0 shadow-sm ${avatarColor(rx.patient?.id)}`}>
+                      {initialsOf(rx.patient?.name)}
+                    </div>
+                    <span className="text-navy">{rx.patient?.name}</span>
+                  </div>
+                </td>
                 <td className="py-3 pr-4 text-muted whitespace-nowrap">{formatDate(rx.date)}</td>
-                <td className="py-3 pr-4 text-muted">{rx.diagnosis}</td>
-                <td className="py-3 pr-4"><Badge color="success">{rx.status}</Badge></td>
+                <td className="py-3 pr-4">
+                  <Badge color="primary">{rx.medicines?.length || 0} medicine(s)</Badge>
+                </td>
+                <td className="py-3 pr-4 text-muted whitespace-nowrap">{rx.followUpDate ? formatDate(rx.followUpDate) : "—"}</td>
                 <td className="py-3 pr-4">
                   <Link to={`/doctor/prescriptions/${rx.id}`}>
-                    <Button size="sm" variant="outline">View</Button>
+                    <Button size="sm" variant="secondary" icon={FiEye}>View</Button>
                   </Link>
                 </td>
               </tr>

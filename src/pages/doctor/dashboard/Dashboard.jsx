@@ -12,6 +12,13 @@ import { FiAlertTriangle } from "react-icons/fi";
 import { useAuth } from "../../../hooks/useAuth";
 import { friendlyError } from "../../../utils/errorMessage";
 
+function greeting() {
+  const h = new Date().getHours();
+  if (h < 12) return "Good Morning";
+  if (h < 17) return "Good Afternoon";
+  return "Good Evening";
+}
+
 export default function Dashboard() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -55,7 +62,7 @@ export default function Dashboard() {
       className="space-y-5"
     >
       <WelcomeHeader
-        title={`Good Morning, ${user?.name || "Doctor"}`}
+        title={`${greeting()}, ${user?.name || "Doctor"}`}
         subtitle="Here's what's happening with your patients today."
       />
 
