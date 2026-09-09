@@ -24,14 +24,14 @@ export default function PatientHistory() {
       setLoading(true);
       setError(null);
       try {
-        // consultationService.getConsultations already patient object
-        // ke saath enrich karke deta hai (agar backend embed na kare
-        // to bhi best-effort fetch karta hai), isliye alag se
-        // getPatients() call karne ki zaroorat nahi.
+        // consultationService.getConsultations already enriches with the
+        // patient object (falling back to a best-effort fetch if the
+        // backend doesn't embed it), so there's no need for a separate
+        // getPatients() call here.
         const all = await consultationService.getConsultations("Completed");
-        // Har consultation ki actual prescription (agar bani ho) bhi
-        // fetch karte hain, taaki "Prescription" column sahi cheez
-        // dikhaye — pehle yeh hamesha generic list ka link deta tha.
+        // Fetch each consultation's actual prescription (if one exists) too,
+        // so the "Prescription" column shows the right thing — previously
+        // this always linked to a generic list.
         const merged = await Promise.all(
           all.map(async (c) => {
             const rx = await prescriptionService.getConsultationPrescription(c.id).catch(() => null);
@@ -60,7 +60,7 @@ export default function PatientHistory() {
         ) : error ? (
           <EmptyState
             icon={error.status === 403 ? undefined : FiAlertTriangle}
-            title={error.status === 403 ? "Permission denied" : "Load nahi ho paya"}
+            title={error.status === 403 ? "Permission denied" : "Failed to load"}
             subtitle={friendlyError(error)}
           />
         ) : records.length === 0 ? (

@@ -56,7 +56,7 @@ export default function PrescriptionDetails() {
   if (error) {
     return (
       <Card>
-        <EmptyState icon={FiAlertTriangle} title="Prescription load nahi hui" subtitle={friendlyError(error)} />
+        <EmptyState icon={FiAlertTriangle} title="Failed to load prescription" subtitle={friendlyError(error)} />
       </Card>
     );
   }
@@ -67,7 +67,7 @@ export default function PrescriptionDetails() {
     try {
       await downloadElementAsPdf("prescription-preview", `prescription-${rx.id}.pdf`);
     } catch (err) {
-      toast.error(err.message || "PDF download nahi ho paaya");
+      toast.error(err.message || "Could not download PDF");
     } finally {
       setDownloading(false);
     }

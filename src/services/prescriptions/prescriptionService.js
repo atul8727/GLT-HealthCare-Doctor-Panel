@@ -2,21 +2,21 @@ import { ENDPOINTS } from "../../config/endpoints";
 import { apiClient } from "../apiClient";
 import { normalizePrescription } from "../../utils/normalize";
 
-// Ab prescriptions bhi pura real backend API se aati/jaati hain
+// Prescriptions now also come from/go to the real backend API entirely
 // ("Doctors" Postman collection). Important backend rules:
-// - Prescription hamesha ek consultation se create hoti hai, aur
-//   sirf tabhi ban sakti hai jab consultation "Completed" ho chuki ho.
-// - Ek consultation ki sirf ek hi prescription ho sakti hai.
-// - "diagnosis" prescription ka field nahi hai — woh consultation ke
-//   clinical details mein already store hota hai.
+// - A prescription is always created from a consultation, and only once
+//   that consultation has been "Completed".
+// - A consultation can only have one prescription.
+// - "diagnosis" is not a field of the prescription — it is already stored
+//   in the consultation's clinical details.
 
 function isNotFound(err) {
   return err?.status === 404 || /no prescription found/i.test(err?.message || "");
 }
 
-// Agar us consultation ki abhi tak koi prescription nahi bani, to
-// backend "success:false, No prescription found..." deta hai — usko
-// error ki jagah simply "null" treat karte hain (normal/expected state).
+// If a consultation doesn't have a prescription yet, the backend returns
+// "success:false, No prescription found...". We treat that as "null"
+// rather than an error, since that's a normal/expected state.
 async function getConsultationPrescription(consultationId) {
   try {
     const data = await apiClient.get(ENDPOINTS.prescriptions.byConsultation(consultationId));
@@ -55,7 +55,7 @@ async function createPrescription(consultationId, form) {
     }));
 
   if (medicines.length === 0) {
-    throw new Error("Kam se kam ek medicine add karna zaroori hai.");
+    throw new Error("At least one medicine must be added.");
   }
 
   const payload = {

@@ -54,7 +54,7 @@ export default function Consultations() {
         ) : error ? (
           <EmptyState
             icon={error.status === 403 ? undefined : FiAlertTriangle}
-            title={error.status === 403 ? "Permission denied" : "Load nahi ho paya"}
+            title={error.status === 403 ? "Permission denied" : "Failed to load"}
             subtitle={friendlyError(error)}
           />
         ) : consultations.length === 0 ? (

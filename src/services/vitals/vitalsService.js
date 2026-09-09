@@ -2,7 +2,7 @@ import { ENDPOINTS } from "../../config/endpoints";
 import { apiClient } from "../apiClient";
 import { normalizeVitals } from "../../utils/normalize";
 
-// Vitals ab pura real backend API se aata/jaata hai (Admin ke
+// Vitals now comes from/goes to the real backend API entirely (Admin's
 // Postman collection: recordVitals, updateVitals, getPatientVitals,
 // getConsultationVitals, getVitalsById).
 

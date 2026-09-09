@@ -15,7 +15,6 @@ export default function PrescriptionPreview({ prescription, patient, doctor }) {
           <p className="text-muted text-xs">{doctor?.specialization}</p>
         </div>
         <p className="text-muted text-xs">
-          {prescription?.id && `${prescription.id}`} <br />
           {formatDate(prescription?.date)}
         </p>
       </div>

@@ -1,6 +1,6 @@
-// Har patient/doctor ko ek consistent (unhi ki ID se derive hui)
-// colorful gradient avatar deta hai — plain monochrome avatars ki
-// jagah UI mein thoda life aur visual distinction aata hai.
+// Gives every patient/doctor a consistent (derived from their own ID)
+// colorful gradient avatar — adds a bit of life and visual distinction
+// to the UI instead of plain monochrome avatars.
 const AVATAR_COLORS = [
   "bg-gradient-to-br from-sky-400 to-blue-600",
   "bg-gradient-to-br from-violet-400 to-indigo-600",

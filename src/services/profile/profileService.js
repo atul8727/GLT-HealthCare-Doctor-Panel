@@ -1,11 +1,10 @@
 import { authStorage } from "../../utils/storage";
 
-// "Doctors" Postman collection (jo doctor-role token se actually
-// available hai) mein doctor apni profile GET/UPDATE karne ya
-// password change karne ka koi endpoint hi nahi hai — woh sab
-// admin-only hai. Isliye yahan network call nahi lagate (jo hamesha
-// 403 dega), balki jo info login response mein already mil chuki
-// hai (name, email, doctor_id, role) usi se profile dikhate hain.
+// The "Doctors" Postman collection (what's actually available with a
+// doctor-role token) has no endpoint for a doctor to GET/UPDATE their own
+// profile or change their password — that's all admin-only. So we don't
+// make a network call here (which would always return 403); instead we
+// show the info already received at login (name, email, doctor_id, role).
 
 async function getProfile() {
   return authStorage.getUser();
@@ -13,13 +12,13 @@ async function getProfile() {
 
 async function updateProfile() {
   throw new Error(
-    "Profile edit filhaal doctor account se available nahi hai — yeh admin ke through update hoti hai."
+    "Profile editing isn't currently available from the doctor account — it is updated via the admin."
   );
 }
 
 async function changePassword() {
   throw new Error(
-    "Password change filhaal doctor account se available nahi hai — apne admin/clinic se naya password set karwayein."
+    "Password changes aren't currently available from the doctor account — please ask your admin/clinic to set a new password."
   );
 }
 

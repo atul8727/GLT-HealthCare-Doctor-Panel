@@ -1,12 +1,12 @@
 // ─────────────────────────────────────────────────────────────
 // NORMALIZERS
 // ─────────────────────────────────────────────────────────────
-// Real backend responses field-names mein thoda vary kar sakte
-// hain (snake_case vs camelCase, id vs patient_id, etc). Yeh
-// helpers backend ke response ko ek consistent shape mein convert
-// karte hain jo poore doctor panel UI (components/pages) already
-// expect karta hai — isse UI components mein dubara change nahi
-// karna padta agar backend ka exact field-naming thoda alag nikle.
+// Real backend responses can vary a bit in field names (snake_case vs
+// camelCase, id vs patient_id, etc). These helpers convert the backend
+// response into one consistent shape that the whole doctor panel UI
+// (components/pages) already expects — so UI components don't need to
+// change if the backend's exact field naming turns out slightly
+// different.
 // ─────────────────────────────────────────────────────────────
 
 function pick(obj, keys, fallback) {

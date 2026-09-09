@@ -17,7 +17,7 @@ export default function DoctorLayout() {
       />
       <div className="flex-1 min-w-0 flex flex-col">
         <Header onMenuClick={() => setMobileOpen(true)} />
-        <main className="flex-1 p-4 lg:p-6 max-w-[1400px] w-full mx-auto">
+        <main className="flex-1 w-full p-4 lg:p-6">
           <Outlet />
         </main>
       </div>

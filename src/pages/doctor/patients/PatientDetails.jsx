@@ -48,7 +48,7 @@ export default function PatientDetails() {
   useEffect(() => {
     if (!id || id === "undefined") {
       setLoading(false);
-      setError({ message: "Patient ID missing hai." });
+      setError({ message: "Patient ID is missing." });
       return;
     }
     (async () => {
@@ -82,7 +82,7 @@ export default function PatientDetails() {
       setShowVitalsForm(false);
       await loadVitals();
     } catch (err) {
-      toast.error(err.message || "Vitals record nahi ho paaye");
+      toast.error(err.message || "Could not record vitals");
     } finally {
       setSavingVitals(false);
     }
@@ -94,7 +94,7 @@ export default function PatientDetails() {
       <Card>
         <EmptyState
           icon={error.status === 403 ? undefined : FiAlertTriangle}
-          title={error.status === 403 ? "Permission denied" : "Patient load nahi ho paya"}
+          title={error.status === 403 ? "Permission denied" : "Failed to load patient"}
           subtitle={friendlyError(error)}
         />
       </Card>
@@ -120,7 +120,6 @@ export default function PatientDetails() {
           </div>
           <div>
             <p className="text-lg font-bold text-navy">{patient.name}</p>
-            <p className="text-sm text-muted">Patient ID: {patient.id}</p>
             <p className="text-sm text-muted mt-0.5">
               {patient.age} yrs • {patient.gender} • {patient.mobile}
             </p>
@@ -140,8 +139,8 @@ export default function PatientDetails() {
           <Card>
             <p className="font-semibold text-navy mb-2">Medical Summary</p>
             <p className="text-xs text-muted mb-4">
-              Consultation shuru karne se pehle patient ki poori picture — taaki aap sahi tareeke se
-              consult kar sakein.
+              A full picture of the patient before you start the consultation, so you can consult
+              effectively.
             </p>
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="border border-slate-200 rounded-xl p-4">
@@ -153,7 +152,7 @@ export default function PatientDetails() {
                     <p className="text-xs text-muted mt-2">{formatDate(lastCompletedConsultation.date)}</p>
                   </>
                 ) : (
-                  <p className="text-sm text-muted">Koi past consultation nahi mili.</p>
+                  <p className="text-sm text-muted">No past consultation found.</p>
                 )}
               </div>
               <div className="border border-slate-200 rounded-xl p-4">
@@ -169,7 +168,7 @@ export default function PatientDetails() {
                     <p className="text-xs text-muted mt-2">{formatDate(latestVitals.date)}</p>
                   </>
                 ) : (
-                  <p className="text-sm text-muted">Koi vitals record nahi hai.</p>
+                  <p className="text-sm text-muted">No vitals recorded.</p>
                 )}
               </div>
             </div>
@@ -180,7 +179,6 @@ export default function PatientDetails() {
             <div className="grid sm:grid-cols-2 gap-x-8 gap-y-4 text-sm">
               {[
                 ["Name", patient.name],
-                ["Patient ID", patient.id],
                 ["Age", patient.age],
                 ["Gender", patient.gender],
                 ["Mobile", patient.mobile],
@@ -315,7 +313,7 @@ export default function PatientDetails() {
                   className="flex items-center justify-between py-3.5 hover:bg-slate-50 -mx-5 px-5 transition-colors"
                 >
                   <div>
-                    <p className="text-sm font-medium text-navy">Prescription #{rx.id}</p>
+                    <p className="text-sm font-medium text-navy">Prescription</p>
                     <p className="text-xs text-muted mt-0.5">
                       {rx.medicines?.length || 0} medicine(s) • {formatDate(rx.date)}
                     </p>

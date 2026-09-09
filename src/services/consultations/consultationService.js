@@ -3,17 +3,17 @@ import { apiClient } from "../apiClient";
 import { normalizeConsultation, normalizePatient } from "../../utils/normalize";
 import { patientService } from "../patients/patientService";
 
-// Real backend (Doctors Postman collection) ke confirmed rules:
-// - GET /consultations sirf doctor ki apni assigned consultations deta hai.
-// - GET /consultations/:id — agar doctor us consultation mein assigned
-//   nahi hai to 403 aata hai.
-// - PUT /consultations/:id/clinical — sirf "Scheduled" status wali
-//   consultation pe chal sakta hai (ek baar Completed hone ke baad
-//   dobara nahi). "diagnosis" required hai, baaki fields optional.
-//   Success milte hi backend khud status ko "Completed" kar deta hai
-//   — isme koi "draft save" concept nahi hai.
-// - Doctor role ke paas consultation "cancel" karne ka koi API nahi
-//   hai (woh admin-only action hai), isliye yahan implement nahi kiya.
+// Confirmed rules from the real backend (Doctors Postman collection):
+// - GET /consultations only returns the doctor's own assigned consultations.
+// - GET /consultations/:id — returns 403 if the doctor is not assigned to
+//   that consultation.
+// - PUT /consultations/:id/clinical — only works while the consultation is
+//   in "Scheduled" status (never again once it becomes Completed).
+//   "diagnosis" is required, other fields are optional. As soon as it
+//   succeeds, the backend itself sets the status to "Completed" — there
+//   is no "draft save" concept.
+// - The doctor role has no API to "cancel" a consultation (that is an
+//   admin-only action), so it isn't implemented here.
 
 function todayStr() {
   return new Date().toISOString().slice(0, 10);
@@ -26,11 +26,11 @@ const STATUS_MAP = {
   Cancelled: "Cancelled",
 };
 
-// Agar backend consultation ke andar patient object embed nahi karta
-// (jo ki confirmed hai — nahi karta), to yahan best-effort tareeke se
-// patient detail fetch karte hain. Agar woh call fail ho jaaye (jaise
-// permission na ho), to bhi poori consultation list crash nahi hoti —
-// bas us consultation ka patient "null" reh jaata hai.
+// If the backend doesn't embed a patient object inside the consultation
+// (which is confirmed — it doesn't), we best-effort fetch the patient
+// detail here. If that call fails (e.g. no permission), the whole
+// consultation list still doesn't crash — that consultation's patient is
+// simply left "null".
 async function enrichPatient(c) {
   if (c.patient) return normalizePatient(c.patient);
   if (!c.patientId) return null;
@@ -51,8 +51,8 @@ async function getConsultations(filter = "All") {
     })
   );
 
-  // "Today's" ke liye backend mein date-query nahi hai, isliye
-  // client-side filter karte hain.
+  // There's no date-query on the backend for "Today's", so it's filtered
+  // client-side.
   if (filter === "Today's") {
     const today = todayStr();
     items = items.filter((c) => c.date === today);
@@ -69,13 +69,12 @@ async function getConsultationById(id) {
   return { ...base, patient };
 }
 
-// Consultation clinical details (chief complaint, diagnosis, advice, etc.)
-// submit karne ke liye. Diagnosis required hai — backend isko validate
-// karta hai, lekin hum bhi UI mein pehle hi check kar lete hain taaki
-// user ko turant pata chal jaaye.
+// Submits the consultation's clinical details (chief complaint, diagnosis,
+// advice, etc). Diagnosis is required — the backend validates this too,
+// but we check it here first so the user gets instant feedback.
 async function submitClinicalDetails(id, form) {
   if (!form.diagnosis || !form.diagnosis.trim()) {
-    throw new Error("Diagnosis likhna zaroori hai.");
+    throw new Error("Diagnosis is required.");
   }
   const payload = {
     chief_complaint: form.chiefComplaint || "",

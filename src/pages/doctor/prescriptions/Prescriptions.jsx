@@ -14,11 +14,11 @@ import { formatDate } from "../../../utils/formatDate";
 import { friendlyError } from "../../../utils/errorMessage";
 import { avatarColor, initialsOf } from "../../../utils/avatarColor";
 
-// Backend mein "saari prescriptions ek saath list karo" jaisa koi
-// dedicated endpoint nahi hai — sirf patient-wise ya consultation-wise
-// milti hain. Isliye yahan apne saare patients leke, har patient ki
-// prescriptions fetch karke ek combined list bana rahe hain. Agar
-// kisi ek patient ki fetch fail ho jaaye, poori list crash nahi hoti.
+// There is no dedicated "list all prescriptions" endpoint on the backend —
+// prescriptions can only be fetched per-patient or per-consultation. So here
+// we take all of this doctor's patients, fetch each patient's prescriptions,
+// and build one combined list. If fetching for one patient fails, the whole
+// list doesn't crash.
 export default function Prescriptions() {
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -63,16 +63,15 @@ export default function Prescriptions() {
         ) : error ? (
           <EmptyState
             icon={error.status === 403 ? undefined : FiAlertTriangle}
-            title={error.status === 403 ? "Permission denied" : "Load nahi ho paya"}
+            title={error.status === 403 ? "Permission denied" : "Failed to load"}
             subtitle={friendlyError(error)}
           />
         ) : list.length === 0 ? (
           <EmptyState icon={FiClipboard} title="No prescriptions yet" />
         ) : (
-          <Table columns={["Prescription ID", "Patient", "Date", "Medicines", "Follow-up", "Action"]}>
+          <Table columns={["Patient", "Date", "Medicines", "Follow-up", "Action"]}>
             {list.map((rx) => (
               <tr key={rx.id}>
-                <td className="py-3 pr-4 font-medium text-navy whitespace-nowrap">#{rx.id}</td>
                 <td className="py-3 pr-4 whitespace-nowrap">
                   <div className="flex items-center gap-3">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-xs shrink-0 shadow-sm ${avatarColor(rx.patient?.id)}`}>
