@@ -3,10 +3,9 @@ import { apiClient } from "../apiClient";
 import { authStorage } from "../../utils/storage";
 import { normalizeDoctor } from "../../utils/normalize";
 
-// Login hamesha real backend (POST /auth/login) se hota hai.
-// Koi hardcoded/mock credential accept nahi hoti — jo email/password
-// admin ne doctor account banate waqt diya hai, sirf wahi login
-// karega.
+// Login always goes through the real backend (POST /auth/login).
+// No hardcoded/mock credentials are accepted — only the email/password
+// the admin gave when creating the doctor account will work.
 async function login(email, password) {
   const data = await apiClient.post(ENDPOINTS.auth.login, {
     email,
@@ -17,15 +16,15 @@ async function login(email, password) {
   const rawUser = data?.user || {};
   const user = normalizeDoctor(rawUser);
 
-  // Extra safety: agar backend ne kisi wajah se non-doctor account
-  // ka token de bhi diya, to doctor panel mein login nahi hone denge.
+  // Extra safety: if the backend ever returns a token for a non-doctor
+  // account, don't allow login into the doctor panel.
   const role = (rawUser.role || "").toLowerCase();
   if (role && role !== "doctor") {
-    throw new Error("Yeh account Doctor Portal ke liye authorized nahi hai.");
+    throw new Error("This account is not authorized for the Doctor Portal.");
   }
 
   if (!data?.token) {
-    throw new Error("Login response mein token nahi mila.");
+    throw new Error("No token was returned in the login response.");
   }
 
   authStorage.setToken(data.token);

@@ -1,12 +1,12 @@
 // ─────────────────────────────────────────────────────────────
 // CENTRAL API CLIENT (REST)
-// Saare real backend calls yahin se guzarte hain — base URL, auth
-// token (Bearer), headers, response envelope aur error handling
-// sab ek hi jagah handle hota hai.
+// All real backend calls go through here — base URL, auth token
+// (Bearer), headers, response envelope, and error handling are all
+// handled in one place.
 //
-// Backend response ka shape hamesha aisa aata hai:
+// The backend response shape is always:
 //   { success: true/false, message: "...", data: {...} }
-// Yeh client automatically "data" ko unwrap karke return karta hai.
+// This client automatically unwraps and returns "data".
 // ─────────────────────────────────────────────────────────────
 import { API_BASE_URL } from "../config/api";
 import { authStorage } from "../utils/storage";
@@ -26,10 +26,10 @@ async function request(path, { method = "GET", body, headers = {} } = {}) {
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
   } catch {
-    throw new Error("Server se connect nahi ho paya. Apna internet ya API URL check karein.");
+    throw new Error("Could not connect to the server. Please check your internet or the API URL.");
   }
 
-  // Session expire ho gaya / token invalid hai
+  // Session expired / token invalid
   if (res.status === 401) {
     authStorage.clearToken();
     authStorage.clearUser();
@@ -50,14 +50,14 @@ async function request(path, { method = "GET", body, headers = {} } = {}) {
     const message =
       res.status === 403
         ? json?.message ||
-          "Permission denied: aapke doctor account ko is data ko access karne ki permission server par abhi allow nahi hai. Backend/admin team se apne role ke liye is API ko allow karwane ko kahein."
+          "Permission denied: your doctor account does not currently have permission to access this data on the server. Please ask your backend/admin team to enable this API for your role."
         : json?.message || `API Error: ${res.status}`;
     const err = new Error(message);
     err.status = res.status;
     throw err;
   }
 
-  // Backend envelope { success, message, data } -> sirf "data" return karo
+  // Backend envelope { success, message, data } -> return only "data"
   return json && Object.prototype.hasOwnProperty.call(json, "data") ? json.data : json;
 }
 

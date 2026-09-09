@@ -1,12 +1,12 @@
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
-// Kisi bhi on-screen element (jaise prescription preview) ko real
-// downloadable PDF file mein convert karta hai — screenshot leke
-// usko ek A4 page ke PDF mein fit karta hai.
+// Converts any on-screen element (like the prescription preview) into a
+// real downloadable PDF file — takes a screenshot and fits it into an
+// A4-page PDF.
 export async function downloadElementAsPdf(elementId, filename = "document.pdf") {
   const el = document.getElementById(elementId);
-  if (!el) throw new Error("Preview element nahi mila.");
+  if (!el) throw new Error("Preview element not found.");
 
   const canvas = await html2canvas(el, {
     scale: 2,
@@ -28,7 +28,7 @@ export async function downloadElementAsPdf(elementId, filename = "document.pdf")
   pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
   heightLeft -= pageHeight;
 
-  // Agar content ek page se lamba ho, to next pages mein continue karo.
+  // If the content is longer than one page, continue onto the next pages.
   while (heightLeft > 0) {
     position = heightLeft - imgHeight;
     pdf.addPage();

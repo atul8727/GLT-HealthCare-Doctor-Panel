@@ -17,12 +17,12 @@ import { formatDate } from "../../../utils/formatDate";
 import { friendlyError } from "../../../utils/errorMessage";
 
 const FIELDS = [
-  { key: "chiefComplaint", label: "Chief Complaint", placeholder: "Patient ki main complaint / symptoms" },
+  { key: "chiefComplaint", label: "Chief Complaint", placeholder: "Patient's main complaint / symptoms" },
   { key: "medicalHistory", label: "Medical History", placeholder: "Relevant previous medical history" },
-  { key: "examination", label: "Examination / Observations", placeholder: "Doctor ke examination observations" },
+  { key: "examination", label: "Examination / Observations", placeholder: "Doctor's examination observations" },
   { key: "diagnosis", label: "Diagnosis *", placeholder: "Diagnosis (required)" },
   { key: "notes", label: "Consultation Notes", placeholder: "Detailed consultation notes" },
-  { key: "advice", label: "Advice", placeholder: "Patient ko di gayi advice" },
+  { key: "advice", label: "Advice", placeholder: "Advice given to the patient" },
 ];
 
 export default function ConsultationDetails() {
@@ -53,8 +53,8 @@ export default function ConsultationDetails() {
           followUp: data.followUp || "",
         });
 
-        // Consultation ke time par record ki gayi vitals; agar na milein
-        // to patient ki latest vitals dikha do.
+        // Vitals recorded at the time of this consultation; if none exist,
+        // fall back to the patient's latest recorded vitals.
         try {
           const cVitals = await vitalsService.getConsultationVitals(id);
           if (cVitals?.length) {
@@ -67,8 +67,8 @@ export default function ConsultationDetails() {
           setVitals(null);
         }
 
-        // Agar consultation Completed hai, to check karo ki iski
-        // prescription pehle se bani hui hai ya nahi.
+        // If the consultation is Completed, check whether a prescription
+        // has already been created for it.
         if (data.status === "Completed") {
           try {
             const rx = await prescriptionService.getConsultationPrescription(id);
@@ -96,19 +96,13 @@ export default function ConsultationDetails() {
     window.open(consultation.meetLink, "_blank");
   };
 
-  // Backend rule: submitClinicalDetails call hone ke saath hi consultation
-  // "Completed" ho jaati hai — isme koi "draft" concept nahi hai, isliye
-  // submit se pehle clearly confirm kar lete hain.
+  // Backend rule: as soon as submitClinicalDetails succeeds, the consultation
+  // becomes "Completed" — there is no "draft" concept. The permanence of this
+  // action is explained to the doctor inline (see the notice above the
+  // submit button), so no blocking browser dialog is used here.
   const handleSubmit = async () => {
     if (!form.diagnosis || !form.diagnosis.trim()) {
-      toast.error("Diagnosis likhna zaroori hai.");
-      return;
-    }
-    if (
-      !window.confirm(
-        "Submit karte hi yeh consultation 'Completed' ho jayegi aur dobara edit nahi ho payegi. Continue karein?"
-      )
-    ) {
+      toast.error("Diagnosis is required.");
       return;
     }
     setSubmitting(true);
@@ -129,7 +123,7 @@ export default function ConsultationDetails() {
       <Card>
         <EmptyState
           icon={error.status === 403 ? undefined : FiAlertTriangle}
-          title={error.status === 403 ? "Permission denied" : "Consultation load nahi hui"}
+          title={error.status === 403 ? "Permission denied" : "Failed to load consultation"}
           subtitle={friendlyError(error)}
         />
       </Card>
@@ -138,8 +132,8 @@ export default function ConsultationDetails() {
   if (!consultation) return <p className="text-muted">Consultation not found.</p>;
 
   const p = consultation.patient;
-  // Backend sirf "Scheduled" status wali consultation par hi clinical
-  // details submit karne deta hai.
+  // The backend only allows clinical details to be submitted while a
+  // consultation is in "Scheduled" status.
   const canSubmit = consultation.status === "Scheduled";
 
   return (
@@ -180,7 +174,7 @@ export default function ConsultationDetails() {
               </Link>
             ) : (
               <p className="text-xs text-muted block mt-3 pt-3 border-t border-slate-100">
-                Patient profile abhi load nahi ho payi.
+                Patient profile could not be loaded.
               </p>
             )}
           </Card>
@@ -206,8 +200,8 @@ export default function ConsultationDetails() {
             <p className="font-semibold text-navy">Consultation</p>
             {!canSubmit && (
               <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                Yeh consultation "{consultation.status}" status mein hai, isliye clinical details ab
-                edit/submit nahi ki ja sakti (sirf "Scheduled" consultations editable hoti hain).
+                This consultation is in "{consultation.status}" status, so clinical details can no
+                longer be edited or submitted (only "Scheduled" consultations are editable).
               </p>
             )}
             {FIELDS.map((f) => (
@@ -232,10 +226,16 @@ export default function ConsultationDetails() {
           </Card>
 
           {canSubmit && (
-            <div className="flex flex-wrap gap-3 justify-end">
-              <Button icon={FiCheckCircle} loading={submitting} onClick={handleSubmit}>
-                Submit &amp; Complete Consultation
-              </Button>
+            <div className="space-y-2">
+              <p className="text-xs text-muted bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                Submitting will mark this consultation as "Completed" and it cannot be edited again
+                afterwards.
+              </p>
+              <div className="flex flex-wrap gap-3 justify-end">
+                <Button icon={FiCheckCircle} loading={submitting} onClick={handleSubmit}>
+                  Submit &amp; Complete Consultation
+                </Button>
+              </div>
             </div>
           )}
 

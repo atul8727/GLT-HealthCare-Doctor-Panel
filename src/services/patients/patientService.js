@@ -3,23 +3,22 @@ import { apiClient } from "../apiClient";
 import { normalizePatient, normalizeConsultation } from "../../utils/normalize";
 import { prescriptionService } from "../prescriptions/prescriptionService";
 
-// Chhota sa in-memory cache — same patient baar baar (jaise consultation
-// list ke har row ke liye) fetch karne se bachata hai, aur agar backend
-// permission (403) de raha ho to baar baar wahi failing request nahi
-// dohrata within a single page load.
+// A small in-memory cache — avoids re-fetching the same patient repeatedly
+// (e.g. for every row of a consultation list), and if the backend returns
+// a permission error (403), avoids repeating that same failing request
+// over and over within a single page load.
 const patientCache = new Map();
 
 function isValidId(id) {
   return id !== undefined && id !== null && id !== "" && id !== "undefined" && id !== "null";
 }
 
-// Doctor role ke liye plain GET /patients 403 deta hai (woh admin-only
-// hai) — doctor apne assigned patients "/patients/my-patients" se
-// dekhta hai.
+// Plain GET /patients returns 403 for the doctor role (admin-only) — a
+// doctor views their assigned patients via "/patients/my-patients".
 //
-// Patient object mein khud "last consultation date" nahi aata, isliye
-// consultations list se khud compute karte hain (per-patient sabse
-// recent consultation date).
+// The patient object itself doesn't include a "last consultation date",
+// so we compute it ourselves from the consultations list (the most
+// recent consultation date per patient).
 async function getPatients(query = "") {
   const [patientsData, consultationsData] = await Promise.all([
     apiClient.get(ENDPOINTS.patients.myPatients),
@@ -52,10 +51,7 @@ async function getPatients(query = "") {
   if (query) {
     const q = query.toLowerCase();
     patients = patients.filter(
-      (p) =>
-        p.name?.toLowerCase().includes(q) ||
-        String(p.id).toLowerCase().includes(q) ||
-        p.mobile?.includes(q)
+      (p) => p.name?.toLowerCase().includes(q) || p.mobile?.includes(q)
     );
   }
   return patients;
@@ -71,10 +67,10 @@ async function getPatientById(id) {
   return patient;
 }
 
-// Consultation list mein agar backend patient object embed nahi karta,
-// to yeh helper best-effort tareeke se patient detail fetch karta hai —
-// aur agar permission na ho (403) to poori list crash nahi hoti, bas
-// us consultation ka patient "null" reh jaata hai.
+// Best-effort patient detail fetch for when the backend doesn't embed a
+// patient object in the consultation list — and if permission is denied
+// (403), the whole list still doesn't crash, that consultation's patient
+// is simply left "null".
 async function getPatientByIdSafe(id) {
   try {
     return await getPatientById(id);
@@ -84,8 +80,8 @@ async function getPatientByIdSafe(id) {
 }
 
 async function getPatientConsultations(id) {
-  // Koi dedicated "consultations by patient" endpoint nahi hai,
-  // isliye poori list leke patient ke hisaab se filter karte hain.
+  // There's no dedicated "consultations by patient" endpoint, so we fetch
+  // the full list and filter it by patient.
   const data = await apiClient.get(ENDPOINTS.consultations.list);
   const list = Array.isArray(data) ? data : data?.consultations || [];
   return list
@@ -94,7 +90,7 @@ async function getPatientConsultations(id) {
     .sort((a, b) => new Date(b.date) - new Date(a.date));
 }
 
-// Ab real API se aata hai — GET /prescriptions/patient/:patientId.
+// Now comes from the real API — GET /prescriptions/patient/:patientId.
 async function getPatientPrescriptions(id) {
   return prescriptionService.getPatientPrescriptions(id);
 }

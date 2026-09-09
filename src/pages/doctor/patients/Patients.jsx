@@ -50,7 +50,7 @@ export default function Patients() {
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search patient by name, ID or mobile..."
+          placeholder="Search patient by name or mobile..."
           className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary bg-white"
         />
       </div>
@@ -61,13 +61,13 @@ export default function Patients() {
         ) : error ? (
           <EmptyState
             icon={error.status === 403 ? FiLock : FiUsers}
-            title={error.status === 403 ? "Permission denied" : "Kuch galat ho gaya"}
+            title={error.status === 403 ? "Permission denied" : "Something went wrong"}
             subtitle={error.message}
           />
         ) : patients.length === 0 ? (
           <EmptyState icon={FiUsers} title="No patients found" subtitle="Try a different search term." />
         ) : (
-          <Table columns={["Patient", "ID", "Age", "Gender", "Mobile", "Last Consultation", "Action"]}>
+          <Table columns={["Patient", "Age", "Gender", "Mobile", "Last Consultation", "Action"]}>
             {patients.map((p) => {
               const initials = initialsOf(p.name);
               return (
@@ -80,7 +80,6 @@ export default function Patients() {
                       <span className="font-medium text-navy">{p.name}</span>
                     </div>
                   </td>
-                  <td className="py-3 pr-4 text-muted whitespace-nowrap">#{p.id}</td>
                   <td className="py-3 pr-4 text-muted">{p.age || "—"}</td>
                   <td className="py-3 pr-4">
                     {p.gender ? (

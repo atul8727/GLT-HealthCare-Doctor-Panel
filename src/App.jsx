@@ -15,7 +15,6 @@ import Prescriptions from "./pages/doctor/prescriptions/Prescriptions";
 import CreatePrescription from "./pages/doctor/prescriptions/CreatePrescription";
 import PrescriptionDetails from "./pages/doctor/prescriptions/PrescriptionDetails";
 import Profile from "./pages/doctor/profile/Profile";
-import Settings from "./pages/doctor/settings/Settings";
 
 export default function App() {
   return (
@@ -49,7 +48,6 @@ export default function App() {
             <Route path="prescriptions/:id" element={<PrescriptionDetails />} />
 
             <Route path="profile" element={<Profile />} />
-            <Route path="settings" element={<Settings />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/doctor/dashboard" replace />} />

@@ -1,11 +1,11 @@
 // ─────────────────────────────────────────────────────────────
 // LOCAL STORAGE
 // ─────────────────────────────────────────────────────────────
-// Ab poora data (patients, consultations, vitals, prescriptions,
-// doctor profile) real backend API se aata hai. Yahan sirf login
-// session (JWT token + user) local storage mein rehta hai — yeh
-// normal hai, har real app apna session isi tarah browser mein
-// rakhti hai, isse "mock data" nahi kehte.
+// All data (patients, consultations, vitals, prescriptions, doctor
+// profile) now comes from the real backend API. Only the login session
+// (JWT token + user) lives in local storage here — this is normal, every
+// real app keeps its session in the browser this way; it isn't "mock
+// data".
 // ─────────────────────────────────────────────────────────────
 
 const TOKEN_KEY = "glt_doctor_token";

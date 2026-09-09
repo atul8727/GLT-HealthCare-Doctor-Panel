@@ -1,13 +1,14 @@
-// Real backend (GLT Healthcare API) ke actual routes.
-// "Doctors" Postman collection (doctor-role ke liye jo actually
-// available/working hain, verified responses ke saath) se liye gaye hain.
+// Real backend (GLT Healthcare API) routes.
+// Taken from the "Doctors" Postman collection (only the ones actually
+// available/working for the doctor role, with verified responses).
 export const ENDPOINTS = {
   auth: {
     login: "/auth/login",
   },
   patients: {
-    // Doctor role ke liye plain "/patients" 403 deta hai (woh admin-only hai) —
-    // doctor sirf apne assigned patients "/patients/my-patients" se dekh sakta hai.
+    // Plain "/patients" returns 403 for the doctor role (admin-only) —
+    // a doctor can only view their assigned patients via
+    // "/patients/my-patients".
     myPatients: "/patients/my-patients",
     detail: (id) => `/patients/${id}`,
   },
@@ -24,8 +25,8 @@ export const ENDPOINTS = {
     clinical: (id) => `/consultations/${id}/clinical`,
   },
   prescriptions: {
-    // Prescription hamesha ek consultation se linked hoti hai (consultation
-    // ko Completed hone ke baad hi ban sakti hai).
+    // A prescription is always linked to a consultation (can only be
+    // created once the consultation has become Completed).
     create: (consultationId) => `/prescriptions/consultation/${consultationId}`,
     byConsultation: (consultationId) => `/prescriptions/consultation/${consultationId}`,
     byId: (id) => `/prescriptions/${id}`,

@@ -1,18 +1,18 @@
 import { patientService } from "../patients/patientService";
 import { consultationService } from "../consultations/consultationService";
 
-// Backend mein dashboard ke liye koi dedicated "stats" endpoint nahi hai,
-// isliye real patients + consultations data khud fetch karke, client-side
-// hi stats/aggregations nikaal lete hain (localStorage kahin use nahi ho raha).
+// The backend has no dedicated "stats" endpoint for the dashboard, so we
+// fetch the real patients + consultations data ourselves and compute
+// stats/aggregations client-side (no localStorage is used anywhere here).
 
 function todayStr() {
   return new Date().toISOString().slice(0, 10);
 }
 
 async function getStats() {
-  // Dono calls independently try karte hain — agar patients list
-  // permission (403) ki wajah se fail ho jaaye, tab bhi consultation
-  // based stats (today's/upcoming/completed) dikhte rahenge.
+  // Both calls are tried independently — if the patients list fails due
+  // to a permission error (403), the consultation-based stats
+  // (today's/upcoming/completed) will still show.
   const [consultationsResult, patientsResult] = await Promise.allSettled([
     consultationService.getConsultations("All"),
     patientService.getPatients(),

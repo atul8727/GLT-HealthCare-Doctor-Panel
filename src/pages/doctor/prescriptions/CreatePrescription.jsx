@@ -16,11 +16,11 @@ import MedicineForm from "../../../components/prescriptions/MedicineForm";
 import PrescriptionPreview from "../../../components/prescriptions/PrescriptionPreview";
 import { friendlyError } from "../../../utils/errorMessage";
 
-// Backend rule: prescription hamesha ek consultation se banti hai,
-// aur sirf tabhi jab woh consultation "Completed" ho chuki ho.
-// "diagnosis" prescription ka apna field nahi hai — woh consultation
-// ke clinical details mein pehle hi save ho chuka hota hai, yahan
-// sirf reference ke liye dikhaya jaata hai.
+// Backend rule: a prescription is always created from a consultation,
+// and only once that consultation is "Completed". "diagnosis" is not a
+// field of the prescription itself — it is already saved in the
+// consultation's clinical details, and is shown here purely for
+// reference.
 
 export default function CreatePrescription() {
   const [params] = useSearchParams();
@@ -44,7 +44,7 @@ export default function CreatePrescription() {
   useEffect(() => {
     if (!consultationId) {
       setLoading(false);
-      setError({ message: "Consultation ID missing hai." });
+      setError({ message: "Consultation ID is missing." });
       return;
     }
     (async () => {
@@ -99,7 +99,7 @@ export default function CreatePrescription() {
   if (error) {
     return (
       <Card>
-        <EmptyState icon={FiAlertTriangle} title="Load nahi ho paya" subtitle={friendlyError(error)} />
+        <EmptyState icon={FiAlertTriangle} title="Failed to load" subtitle={friendlyError(error)} />
       </Card>
     );
   }
@@ -109,12 +109,12 @@ export default function CreatePrescription() {
       <Card>
         <EmptyState
           icon={FiAlertTriangle}
-          title="Consultation abhi Completed nahi hai"
-          subtitle={`Prescription sirf "Completed" consultation ke liye ban sakti hai. Iska status abhi "${consultation.status}" hai — pehle clinical details submit karke consultation complete karein.`}
+          title="Consultation is not Completed yet"
+          subtitle={`A prescription can only be created for a "Completed" consultation. Its status is currently "${consultation.status}" — please submit clinical details to complete the consultation first.`}
         />
         <div className="flex justify-center mt-2">
           <Link to={`/doctor/consultations/${consultationId}`}>
-            <Button variant="outline" size="sm">Consultation par jaayein</Button>
+            <Button variant="outline" size="sm">Go to Consultation</Button>
           </Link>
         </div>
       </Card>
@@ -126,12 +126,12 @@ export default function CreatePrescription() {
       <Card>
         <EmptyState
           icon={FiFileText}
-          title="Is consultation ki prescription pehle se ban chuki hai"
-          subtitle="Ek consultation ke liye sirf ek hi prescription ban sakti hai."
+          title="A prescription already exists for this consultation"
+          subtitle="Only one prescription can be created per consultation."
         />
         <div className="flex justify-center mt-2">
           <Link to={`/doctor/prescriptions/${existingRx.id}`}>
-            <Button size="sm">Prescription dekhein</Button>
+            <Button size="sm">View Prescription</Button>
           </Link>
         </div>
       </Card>
@@ -146,15 +146,14 @@ export default function CreatePrescription() {
         <h1 className="text-xl font-bold text-navy">Create Prescription</h1>
         <p className="text-sm text-muted mt-1">
           Patient: <span className="font-medium text-navy">{patient?.name || "—"}</span> • Doctor:{" "}
-          <span className="font-medium text-navy">{user?.name}</span> • Consultation:{" "}
-          <span className="font-medium text-navy">#{consultationId}</span>
+          <span className="font-medium text-navy">{user?.name}</span>
         </p>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-5 items-start">
         <div className="lg:col-span-2 space-y-5">
           <Card>
-            <p className="text-xs text-muted uppercase font-semibold mb-1">Diagnosis (consultation se)</p>
+            <p className="text-xs text-muted uppercase font-semibold mb-1">Diagnosis (from consultation)</p>
             <p className="font-medium text-navy">{consultation?.diagnosis || "—"}</p>
           </Card>
 

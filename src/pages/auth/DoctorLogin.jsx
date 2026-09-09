@@ -66,7 +66,7 @@ export default function DoctorLogin() {
         </form>
 
         <p className="text-xs text-muted text-center mt-5">
-          Login uss email/password se hoga jo admin ne aapka doctor account banate waqt diya hai.
+          Log in with the email/password your admin gave you when your doctor account was created.
         </p>
       </motion.div>
     </div>

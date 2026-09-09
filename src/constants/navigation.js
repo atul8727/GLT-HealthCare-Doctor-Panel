@@ -5,7 +5,6 @@ import {
   FiFileText,
   FiClipboard,
   FiUser,
-  FiSettings,
 } from "react-icons/fi";
 
 export const MAIN_NAV = [
@@ -18,5 +17,4 @@ export const MAIN_NAV = [
 
 export const ACCOUNT_NAV = [
   { label: "My Profile", to: "/doctor/profile", icon: FiUser },
-  { label: "Settings", to: "/doctor/settings", icon: FiSettings },
 ];

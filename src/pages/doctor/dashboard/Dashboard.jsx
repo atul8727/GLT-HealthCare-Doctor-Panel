@@ -32,9 +32,9 @@ export default function Dashboard() {
     (async () => {
       setLoading(true);
       setError("");
-      // Promise.allSettled — agar ek call fail ho (jaise 403), to baaki
-      // widgets phir bhi apna data dikha sakte hain, poora dashboard
-      // blank nahi hoga.
+      // Promise.allSettled — if one call fails (e.g. 403), the other
+      // widgets can still show their data instead of the whole dashboard
+      // going blank.
       const [s, t, n, r] = await Promise.allSettled([
         dashboardService.getStats(),
         dashboardService.getTodaysConsultations(),
@@ -68,7 +68,7 @@ export default function Dashboard() {
 
       {error && (
         <Card>
-          <EmptyState icon={FiAlertTriangle} title="Kuch data load nahi ho paya" subtitle={error} />
+          <EmptyState icon={FiAlertTriangle} title="Some data failed to load" subtitle={error} />
         </Card>
       )}
 
