@@ -1,13 +1,21 @@
 import { FiInbox } from "react-icons/fi";
 
-export default function EmptyState({ icon: Icon = FiInbox, title = "Nothing here yet", subtitle = "" }) {
+export default function EmptyState({
+  icon: Icon = FiInbox,
+  title = "Nothing here yet",
+  subtitle = "",
+  description = "",
+  action,
+}) {
+  const text = subtitle || description;
   return (
-    <div className="flex flex-col items-center justify-center py-14 text-center">
-      <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center mb-3">
-        <Icon size={24} className="text-muted" />
+    <div className="flex flex-col items-center justify-center px-4 py-14 text-center">
+      <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-[#1D6FE0] shadow-xs">
+        <Icon className="h-7 w-7" />
       </div>
-      <p className="text-navy font-medium">{title}</p>
-      {subtitle && <p className="text-sm text-muted mt-1 max-w-xs">{subtitle}</p>}
+      <p className="text-base font-bold text-[#14142B]">{title}</p>
+      {text && <p className="mt-1 max-w-sm text-sm text-[#64748B]">{text}</p>}
+      {action && <div className="mt-5">{action}</div>}
     </div>
   );
 }

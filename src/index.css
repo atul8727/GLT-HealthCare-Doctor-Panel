@@ -2,25 +2,78 @@
 @tailwind components;
 @tailwind utilities;
 
-html, body, #root {
+html,
+body,
+#root {
+  min-height: 100%;
   height: 100%;
 }
 
 body {
-  @apply bg-surface text-navy font-sans antialiased;
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  background: linear-gradient(135deg, #EEF0FB 0%, #F8FAFC 60%, #E8F1F8 100%);
+  background-attachment: fixed;
+  color: #14142B;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 8px; }
-::-webkit-scrollbar-track { background: transparent; }
+::selection {
+  background: #C7D2FE;
+  color: #14142B;
+}
 
-.scrollbar-hide::-webkit-scrollbar { display: none; }
-.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
 
-/* Har data table mein row hover highlight — thoda color/life add karta hai */
+:focus-visible {
+  outline: 2px solid #4F46E5;
+  outline-offset: 2px;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+button:focus-visible {
+  outline: none;
+}
+
+/* Custom modern scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Data table row hover highlight */
 table tbody tr {
   transition: background-color 120ms ease;
 }
 table tbody tr:hover {
-  background-color: rgba(37, 99, 235, 0.04);
+  background-color: rgba(79, 70, 229, 0.04);
 }

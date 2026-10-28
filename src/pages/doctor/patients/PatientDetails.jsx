@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
-import { FiArrowLeft, FiPlayCircle, FiPlus, FiFileText, FiAlertTriangle } from "react-icons/fi";
+import { FiPlayCircle, FiPlus, FiFileText, FiAlertTriangle } from "react-icons/fi";
 import { patientService } from "../../../services/patients/patientService";
 import { vitalsService } from "../../../services/vitals/vitalsService";
 import { friendlyError } from "../../../utils/errorMessage";
@@ -10,20 +10,25 @@ import Card from "../../../components/ui/Card";
 import Button from "../../../components/ui/Button";
 import Input from "../../../components/ui/Input";
 import Tabs from "../../../components/ui/Tabs";
+import Avatar from "../../../components/ui/Avatar";
+import Table from "../../../components/ui/Table";
 import Spinner from "../../../components/ui/Spinner";
 import StatusBadge from "../../../components/common/StatusBadge";
 import VitalsCard from "../../../components/common/VitalsCard";
 import EmptyState from "../../../components/ui/EmptyState";
 import { formatDate } from "../../../utils/formatDate";
-import { avatarColor, initialsOf } from "../../../utils/avatarColor";
 
 const TABS = ["Overview", "Vitals", "Consultations", "Prescriptions"];
 
 const EMPTY_VITALS_FORM = { bp: "", pulse: "", temperature: "", spo2: "", weight: "", height: "" };
 
+const TILE = "rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4";
+const TILE_LABEL = "text-xs font-semibold uppercase tracking-wider text-[#64748B]";
+const ROW_LINK =
+  "flex items-center justify-between gap-3 rounded-xl px-4 py-3.5 transition-colors hover:bg-indigo-50/60";
+
 export default function PatientDetails() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const [patient, setPatient] = useState(null);
   const [consultations, setConsultations] = useState([]);
   const [prescriptions, setPrescriptions] = useState([]);
@@ -100,27 +105,31 @@ export default function PatientDetails() {
       </Card>
     );
   }
-  if (!patient) return <EmptyState title="Patient not found" />;
+  if (!patient) {
+    return (
+      <Card>
+        <EmptyState title="Patient not found" />
+      </Card>
+    );
+  }
 
-  const initials = initialsOf(patient.name);
   const nextConsultation = consultations.find((c) => c.status === "Scheduled");
   const latestVitals = vitalsHistory[0] || null;
   const lastCompletedConsultation = consultations.find((c) => c.status === "Completed");
 
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} className="space-y-5">
-      <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-sm text-muted hover:text-navy">
-        <FiArrowLeft size={16} /> Back
-      </button>
-
-      <Card className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25 }}
+      className="space-y-5"
+    >
+      <Card className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div className="flex items-center gap-4">
-          <div className={`w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-lg shrink-0 shadow-sm ${avatarColor(patient.id)}`}>
-            {initials}
-          </div>
-          <div>
-            <p className="text-lg font-bold text-navy">{patient.name}</p>
-            <p className="text-sm text-muted mt-0.5">
+          <Avatar name={patient.name} id={patient.id} size="lg" />
+          <div className="min-w-0">
+            <p className="text-xl font-extrabold text-[#14142B]">{patient.name}</p>
+            <p className="mt-0.5 text-sm text-[#64748B]">
               {patient.age} yrs • {patient.gender} • {patient.mobile}
             </p>
           </div>
@@ -136,47 +145,45 @@ export default function PatientDetails() {
 
       {tab === "Overview" && (
         <div className="space-y-5">
-          <Card>
-            <p className="font-semibold text-navy mb-2">Medical Summary</p>
-            <p className="text-xs text-muted mb-4">
+          <Card title="Medical Summary">
+            <p className="mb-4 text-sm text-[#64748B]">
               A full picture of the patient before you start the consultation, so you can consult
               effectively.
             </p>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="border border-slate-200 rounded-xl p-4">
-                <p className="text-xs font-semibold text-muted uppercase mb-2">Last Diagnosis / Complaint</p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className={TILE}>
+                <p className={`${TILE_LABEL} mb-2`}>Last Diagnosis / Complaint</p>
                 {lastCompletedConsultation ? (
                   <>
-                    <p className="font-medium text-navy">{lastCompletedConsultation.diagnosis || "—"}</p>
-                    <p className="text-sm text-muted mt-1">{lastCompletedConsultation.chiefComplaint || "—"}</p>
-                    <p className="text-xs text-muted mt-2">{formatDate(lastCompletedConsultation.date)}</p>
+                    <p className="font-bold text-[#14142B]">{lastCompletedConsultation.diagnosis || "—"}</p>
+                    <p className="mt-1 text-sm text-[#64748B]">{lastCompletedConsultation.chiefComplaint || "—"}</p>
+                    <p className="mt-2 text-xs text-[#64748B]">{formatDate(lastCompletedConsultation.date)}</p>
                   </>
                 ) : (
-                  <p className="text-sm text-muted">No past consultation found.</p>
+                  <p className="text-sm text-[#64748B]">No past consultation found.</p>
                 )}
               </div>
-              <div className="border border-slate-200 rounded-xl p-4">
-                <p className="text-xs font-semibold text-muted uppercase mb-2">Latest Vitals</p>
+              <div className={TILE}>
+                <p className={`${TILE_LABEL} mb-2`}>Latest Vitals</p>
                 {latestVitals ? (
                   <>
-                    <p className="text-sm text-navy">
+                    <p className="text-sm font-semibold text-[#14142B]">
                       BP {latestVitals.bp || "—"} • Pulse {latestVitals.pulse || "—"} • Temp {latestVitals.temperature || "—"}
                     </p>
-                    <p className="text-sm text-navy mt-1">
+                    <p className="mt-1 text-sm font-semibold text-[#14142B]">
                       SpO₂ {latestVitals.spo2 || "—"} • Weight {latestVitals.weight || "—"} kg
                     </p>
-                    <p className="text-xs text-muted mt-2">{formatDate(latestVitals.date)}</p>
+                    <p className="mt-2 text-xs text-[#64748B]">{formatDate(latestVitals.date)}</p>
                   </>
                 ) : (
-                  <p className="text-sm text-muted">No vitals recorded.</p>
+                  <p className="text-sm text-[#64748B]">No vitals recorded.</p>
                 )}
               </div>
             </div>
           </Card>
 
-          <Card>
-            <p className="font-semibold text-navy mb-4">Patient Information</p>
-            <div className="grid sm:grid-cols-2 gap-x-8 gap-y-4 text-sm">
+          <Card title="Patient Information">
+            <dl className="grid gap-3 sm:grid-cols-2">
               {[
                 ["Name", patient.name],
                 ["Age", patient.age],
@@ -185,18 +192,18 @@ export default function PatientDetails() {
                 ["Email", patient.email],
                 ["Address", patient.address],
               ].map(([label, val]) => (
-                <div key={label} className="flex justify-between border-b border-slate-100 pb-2">
-                  <span className="text-muted">{label}</span>
-                  <span className="font-medium text-navy text-right">{val || "—"}</span>
+                <div key={label} className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3">
+                  <dt className={TILE_LABEL}>{label}</dt>
+                  <dd className="mt-1 break-words text-sm font-semibold text-[#14142B]">{val || "—"}</dd>
                 </div>
               ))}
-            </div>
+            </dl>
           </Card>
         </div>
       )}
 
       {tab === "Vitals" && (
-        <div className="grid lg:grid-cols-2 gap-5">
+        <div className="grid gap-5 lg:grid-cols-2">
           <div className="space-y-5">
             {latestVitals ? (
               <VitalsCard
@@ -216,13 +223,12 @@ export default function PatientDetails() {
             )}
 
             {!showVitalsForm ? (
-              <Button variant="outline" icon={FiPlus} onClick={() => setShowVitalsForm(true)}>
+              <Button icon={FiPlus} onClick={() => setShowVitalsForm(true)}>
                 Record New Vitals
               </Button>
             ) : (
-              <Card className="space-y-4">
-                <p className="font-semibold text-navy">Record Vitals</p>
-                <div className="grid grid-cols-2 gap-3">
+              <Card title="Record Vitals" className="space-y-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Input label="Blood Pressure" placeholder="120/80" value={vitalsForm.bp} onChange={(e) => setVitalsForm((f) => ({ ...f, bp: e.target.value }))} />
                   <Input label="Pulse Rate" placeholder="72" value={vitalsForm.pulse} onChange={(e) => setVitalsForm((f) => ({ ...f, pulse: e.target.value }))} />
                   <Input label="Temperature (°F)" placeholder="98.6" value={vitalsForm.temperature} onChange={(e) => setVitalsForm((f) => ({ ...f, temperature: e.target.value }))} />
@@ -230,67 +236,48 @@ export default function PatientDetails() {
                   <Input label="Weight (kg)" placeholder="70" value={vitalsForm.weight} onChange={(e) => setVitalsForm((f) => ({ ...f, weight: e.target.value }))} />
                   <Input label="Height (cm)" placeholder="175" value={vitalsForm.height} onChange={(e) => setVitalsForm((f) => ({ ...f, height: e.target.value }))} />
                 </div>
-                <div className="flex gap-3 justify-end">
-                  <Button variant="ghost" onClick={() => setShowVitalsForm(false)}>Cancel</Button>
+                <div className="flex justify-end gap-3 border-t border-[#E2E8F0] pt-4">
+                  <Button variant="outline" onClick={() => setShowVitalsForm(false)}>Cancel</Button>
                   <Button loading={savingVitals} onClick={handleRecordVitals}>Save Vitals</Button>
                 </div>
               </Card>
             )}
           </div>
 
-          <Card>
-            <p className="font-semibold text-navy mb-3">Vitals History</p>
+          <Card title="Vitals History">
             {vitalsHistory.length === 0 ? (
               <EmptyState title="No vitals history" />
             ) : (
-              <div className="overflow-x-auto -mx-5 px-5">
-                <table className="w-full text-sm min-w-[500px]">
-                  <thead>
-                    <tr className="border-b border-slate-200 text-muted text-left">
-                      <th className="py-2 pr-3">Date</th>
-                      <th className="py-2 pr-3">BP</th>
-                      <th className="py-2 pr-3">Pulse</th>
-                      <th className="py-2 pr-3">Temp</th>
-                      <th className="py-2 pr-3">SpO₂</th>
-                      <th className="py-2 pr-3">Weight</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {vitalsHistory.map((v) => (
-                      <tr key={v.id || v.date}>
-                        <td className="py-2 pr-3 whitespace-nowrap">{formatDate(v.date)}</td>
-                        <td className="py-2 pr-3">{v.bp}</td>
-                        <td className="py-2 pr-3">{v.pulse}</td>
-                        <td className="py-2 pr-3">{v.temperature}</td>
-                        <td className="py-2 pr-3">{v.spo2}</td>
-                        <td className="py-2 pr-3">{v.weight} kg</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <Table columns={["Date", "BP", "Pulse", "Temp", "SpO₂", "Weight"]}>
+                {vitalsHistory.map((v) => (
+                  <tr key={v.id || v.date} className="transition-colors hover:bg-slate-50/80">
+                    <td className="whitespace-nowrap px-4 py-3.5 text-[#64748B]">{formatDate(v.date)}</td>
+                    <td className="whitespace-nowrap px-4 py-3.5 font-bold text-[#14142B]">{v.bp}</td>
+                    <td className="px-4 py-3.5 text-[#14142B]">{v.pulse}</td>
+                    <td className="px-4 py-3.5 text-[#14142B]">{v.temperature}</td>
+                    <td className="px-4 py-3.5 text-[#14142B]">{v.spo2}</td>
+                    <td className="whitespace-nowrap px-4 py-3.5 text-[#14142B]">{v.weight} kg</td>
+                  </tr>
+                ))}
+              </Table>
             )}
           </Card>
         </div>
       )}
 
       {tab === "Consultations" && (
-        <Card>
+        <Card padding="p-2 sm:p-3">
           {consultations.length === 0 ? (
             <EmptyState title="No consultations yet" />
           ) : (
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-[#E2E8F0]">
               {consultations.map((c) => (
-                <Link
-                  key={c.id}
-                  to={`/doctor/consultations/${c.id}`}
-                  className="flex items-center justify-between py-3.5 hover:bg-slate-50 -mx-5 px-5 transition-colors"
-                >
-                  <div>
-                    <p className="text-sm font-medium text-navy">
+                <Link key={c.id} to={`/doctor/consultations/${c.id}`} className={ROW_LINK}>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-[#14142B]">
                       {formatDate(c.date)} • {c.time}
                     </p>
-                    <p className="text-xs text-muted mt-0.5">{c.diagnosis || "Diagnosis pending"}</p>
+                    <p className="mt-0.5 text-xs text-[#64748B]">{c.diagnosis || "Diagnosis pending"}</p>
                   </div>
                   <StatusBadge status={c.status} />
                 </Link>
@@ -301,24 +288,20 @@ export default function PatientDetails() {
       )}
 
       {tab === "Prescriptions" && (
-        <Card>
+        <Card padding="p-2 sm:p-3">
           {prescriptions.length === 0 ? (
             <EmptyState icon={FiFileText} title="No prescriptions yet" />
           ) : (
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-[#E2E8F0]">
               {prescriptions.map((rx) => (
-                <Link
-                  key={rx.id}
-                  to={`/doctor/prescriptions/${rx.id}`}
-                  className="flex items-center justify-between py-3.5 hover:bg-slate-50 -mx-5 px-5 transition-colors"
-                >
-                  <div>
-                    <p className="text-sm font-medium text-navy">Prescription</p>
-                    <p className="text-xs text-muted mt-0.5">
+                <Link key={rx.id} to={`/doctor/prescriptions/${rx.id}`} className={ROW_LINK}>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-[#14142B]">Prescription</p>
+                    <p className="mt-0.5 text-xs text-[#64748B]">
                       {rx.medicines?.length || 0} medicine(s) • {formatDate(rx.date)}
                     </p>
                   </div>
-                  <span className="text-sm text-primary font-medium">View →</span>
+                  <span className="shrink-0 text-sm font-semibold text-[#4F46E5]">View →</span>
                 </Link>
               ))}
             </div>

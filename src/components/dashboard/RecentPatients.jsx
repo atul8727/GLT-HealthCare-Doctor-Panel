@@ -6,20 +6,22 @@ import { FiUsers } from "react-icons/fi";
 
 export default function RecentPatients({ patients, loading }) {
   return (
-    <Card>
-      <p className="font-semibold text-navy mb-1">Recent Patients</p>
+    <Card title="Recent Patients" icon={FiUsers}>
       {loading ? (
-        <p className="text-sm text-muted py-6">Loading...</p>
+        <p className="py-6 text-sm text-[#64748B]">Loading...</p>
       ) : patients.length === 0 ? (
         <EmptyState icon={FiUsers} title="No recent patients" />
       ) : (
-        <div className="divide-y divide-slate-50">
+        <div className="divide-y divide-[#E2E8F0]">
           {patients.map((p) => (
             <PatientCard key={p.id} patient={p} />
           ))}
         </div>
       )}
-      <Link to="/doctor/patients" className="block text-center text-sm font-medium text-primary hover:underline mt-3 pt-3 border-t border-slate-100">
+      <Link
+        to="/doctor/patients"
+        className="mt-3 block border-t border-[#E2E8F0] pt-3 text-center text-sm font-semibold text-[#4F46E5] transition-colors hover:text-[#4338CA] hover:underline"
+      >
         View All Patients →
       </Link>
     </Card>

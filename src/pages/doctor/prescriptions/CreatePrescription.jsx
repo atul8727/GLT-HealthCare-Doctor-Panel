@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import { FiFileText, FiAlertTriangle } from "react-icons/fi";
 import { consultationService } from "../../../services/consultations/consultationService";
 import { prescriptionService } from "../../../services/prescriptions/prescriptionService";
+import { vitalsService } from "../../../services/vitals/vitalsService";
 import { useAuth } from "../../../hooks/useAuth";
 import Card from "../../../components/ui/Card";
 import Input from "../../../components/ui/Input";
@@ -16,12 +17,6 @@ import MedicineForm from "../../../components/prescriptions/MedicineForm";
 import PrescriptionPreview from "../../../components/prescriptions/PrescriptionPreview";
 import { friendlyError } from "../../../utils/errorMessage";
 
-// Backend rule: a prescription is always created from a consultation,
-// and only once that consultation is "Completed". "diagnosis" is not a
-// field of the prescription itself — it is already saved in the
-// consultation's clinical details, and is shown here purely for
-// reference.
-
 export default function CreatePrescription() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
@@ -29,6 +24,7 @@ export default function CreatePrescription() {
   const consultationId = params.get("consultationId");
 
   const [consultation, setConsultation] = useState(null);
+  const [vitals, setVitals] = useState(null);
   const [existingRx, setExistingRx] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -51,12 +47,14 @@ export default function CreatePrescription() {
       setLoading(true);
       setError(null);
       try {
-        const [c, rx] = await Promise.all([
+        const [c, rx, v] = await Promise.all([
           consultationService.getConsultationById(consultationId),
           prescriptionService.getConsultationPrescription(consultationId),
+          vitalsService.getConsultationVitals(consultationId).catch(() => []),
         ]);
         setConsultation(c);
         setExistingRx(rx);
+        setVitals(v?.[0] || null);
         setAdditionalAdvice(c?.advice || "");
         setFollowUpDate(c?.followUp || "");
       } catch (err) {
@@ -112,7 +110,7 @@ export default function CreatePrescription() {
           title="Consultation is not Completed yet"
           subtitle={`A prescription can only be created for a "Completed" consultation. Its status is currently "${consultation.status}" — please submit clinical details to complete the consultation first.`}
         />
-        <div className="flex justify-center mt-2">
+        <div className="mt-4 flex justify-center">
           <Link to={`/doctor/consultations/${consultationId}`}>
             <Button variant="outline" size="sm">Go to Consultation</Button>
           </Link>
@@ -129,7 +127,7 @@ export default function CreatePrescription() {
           title="A prescription already exists for this consultation"
           subtitle="Only one prescription can be created per consultation."
         />
-        <div className="flex justify-center mt-2">
+        <div className="mt-4 flex justify-center">
           <Link to={`/doctor/prescriptions/${existingRx.id}`}>
             <Button size="sm">View Prescription</Button>
           </Link>
@@ -141,34 +139,53 @@ export default function CreatePrescription() {
   const patient = consultation?.patient;
 
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} className="space-y-5">
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25 }}
+      className="space-y-5"
+    >
       <div>
-        <h1 className="text-xl font-bold text-navy">Create Prescription</h1>
-        <p className="text-sm text-muted mt-1">
-          Patient: <span className="font-medium text-navy">{patient?.name || "—"}</span> • Doctor:{" "}
-          <span className="font-medium text-navy">{user?.name}</span>
+        <h1 className="text-2xl font-extrabold text-[#14142B]">Create Prescription</h1>
+        <p className="mt-1 text-sm text-[#64748B]">
+          Patient: <span className="font-bold text-[#14142B]">{patient?.name || "—"}</span> • Doctor:{" "}
+          <span className="font-bold text-[#14142B]">{user?.name}</span>
         </p>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-5 items-start">
-        <div className="lg:col-span-2 space-y-5">
-          <Card>
-            <p className="text-xs text-muted uppercase font-semibold mb-1">Diagnosis (from consultation)</p>
-            <p className="font-medium text-navy">{consultation?.diagnosis || "—"}</p>
+      <div className="grid items-start gap-5 lg:grid-cols-3">
+        <div className="space-y-5 lg:col-span-2">
+          <Card title="Diagnosis">
+            <p className="text-xs font-semibold uppercase tracking-wider text-[#64748B]">Recorded during consultation</p>
+            <p className="mt-1 text-base font-bold text-[#14142B]">{consultation?.diagnosis || "—"}</p>
           </Card>
 
-          <Card>
-            <p className="font-semibold text-navy mb-3">Medicines</p>
+          <Card title="Medicines">
             <MedicineForm medicines={medicines} onChange={setMedicines} />
           </Card>
 
-          <Card className="space-y-4">
-            <Input label="Tests Recommended" value={testsRecommended} onChange={(e) => setTestsRecommended(e.target.value)} placeholder="e.g. CBC, LFT" />
-            <Textarea label="Additional Advice" value={additionalAdvice} onChange={(e) => setAdditionalAdvice(e.target.value)} placeholder="Advice for the patient" />
-            <Input type="date" label="Follow-up Date" value={followUpDate} onChange={(e) => setFollowUpDate(e.target.value)} />
+          <Card title="Additional Details" className="space-y-4">
+            <Input
+              label="Tests Recommended"
+              value={testsRecommended}
+              onChange={(e) => setTestsRecommended(e.target.value)}
+              placeholder="e.g. CBC, LFT, Lipid Profile"
+            />
+            <Textarea
+              label="Additional Advice"
+              value={additionalAdvice}
+              onChange={(e) => setAdditionalAdvice(e.target.value)}
+              placeholder="Lifestyle advice, dietary instructions, etc."
+            />
+            <Input
+              type="date"
+              label="Follow-up Date"
+              value={followUpDate}
+              onChange={(e) => setFollowUpDate(e.target.value)}
+            />
           </Card>
 
-          <div className="flex flex-wrap gap-3 justify-end">
+          <div className="flex justify-end">
             <Button icon={FiFileText} loading={saving} onClick={handleGenerate}>
               Generate Prescription
             </Button>
@@ -176,7 +193,13 @@ export default function CreatePrescription() {
         </div>
 
         <div className="lg:sticky lg:top-20">
-          <PrescriptionPreview prescription={previewData} patient={patient} doctor={user} />
+          <PrescriptionPreview
+            prescription={previewData}
+            patient={patient}
+            doctor={user}
+            consultation={consultation}
+            vitals={vitals}
+          />
         </div>
       </div>
     </motion.div>

@@ -1,11 +1,15 @@
 export default function MedicineRow({ medicine, index }) {
   return (
-    <div className="text-sm py-2 border-b border-slate-100 last:border-0">
-      <p className="font-medium text-navy">
-        {index}. {medicine.name}
-      </p>
-      <p className="text-muted text-xs mt-0.5">
-        {medicine.dosage} • {medicine.frequency} • {medicine.duration}
+    <div className="py-2.5 text-sm">
+      <div className="flex items-baseline justify-between gap-2">
+        <p className="font-bold text-[#14142B]">
+          <span className="mr-1.5 text-xs text-[#64748B]">{index}.</span>
+          {medicine.name}
+        </p>
+        <span className="text-xs font-semibold text-[#4F46E5]">{medicine.dosage}</span>
+      </div>
+      <p className="mt-0.5 text-xs text-[#64748B]">
+        {medicine.frequency} • {medicine.duration}
         {medicine.instructions ? ` • ${medicine.instructions}` : ""}
       </p>
     </div>

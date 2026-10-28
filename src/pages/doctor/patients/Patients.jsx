@@ -1,16 +1,17 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { FiSearch, FiUsers, FiEye, FiLock } from "react-icons/fi";
+import { FiUsers, FiEye, FiLock } from "react-icons/fi";
 import { patientService } from "../../../services/patients/patientService";
 import Card from "../../../components/ui/Card";
 import Table from "../../../components/ui/Table";
 import Button from "../../../components/ui/Button";
 import Badge from "../../../components/ui/Badge";
+import Avatar from "../../../components/ui/Avatar";
+import SearchInput from "../../../components/ui/SearchInput";
 import EmptyState from "../../../components/ui/EmptyState";
 import Spinner from "../../../components/ui/Spinner";
 import { relativeFromNow } from "../../../utils/formatDate";
-import { avatarColor, initialsOf } from "../../../utils/avatarColor";
 
 export default function Patients() {
   const [patients, setPatients] = useState([]);
@@ -39,25 +40,30 @@ export default function Patients() {
   }, [query]);
 
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} className="space-y-5">
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25 }}
+      className="space-y-5"
+    >
       <div>
-        <h1 className="text-xl font-bold text-navy">My Patients</h1>
-        <p className="text-sm text-muted mt-1">Manage and view patients assigned to you.</p>
+        <h1 className="text-2xl font-extrabold text-[#14142B]">My Patients</h1>
+        <p className="mt-1 text-sm text-[#64748B]">Manage and view patients assigned to you.</p>
       </div>
 
-      <div className="relative max-w-sm">
-        <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-primary/60" size={16} />
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search patient by name or mobile..."
-          className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary bg-white"
-        />
-      </div>
+      <Card padding="p-4 sm:p-6">
+        <div className="mb-5">
+          <SearchInput
+            value={query}
+            onChange={setQuery}
+            placeholder="Search patient by name or mobile..."
+          />
+        </div>
 
-      <Card>
         {loading ? (
-          <div className="flex justify-center py-14"><Spinner /></div>
+          <div className="flex justify-center py-14">
+            <Spinner />
+          </div>
         ) : error ? (
           <EmptyState
             icon={error.status === 403 ? FiLock : FiUsers}
@@ -68,40 +74,37 @@ export default function Patients() {
           <EmptyState icon={FiUsers} title="No patients found" subtitle="Try a different search term." />
         ) : (
           <Table columns={["Patient", "Age", "Gender", "Mobile", "Last Consultation", "Action"]}>
-            {patients.map((p) => {
-              const initials = initialsOf(p.name);
-              return (
-                <tr key={p.id}>
-                  <td className="py-3 pr-4 whitespace-nowrap">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-semibold text-xs shrink-0 shadow-sm ${avatarColor(p.id)}`}>
-                        {initials}
-                      </div>
-                      <span className="font-medium text-navy">{p.name}</span>
-                    </div>
-                  </td>
-                  <td className="py-3 pr-4 text-muted">{p.age || "—"}</td>
-                  <td className="py-3 pr-4">
-                    {p.gender ? (
-                      <Badge color={p.gender === "Female" ? "rose" : p.gender === "Male" ? "primary" : "neutral"}>
-                        {p.gender}
-                      </Badge>
-                    ) : (
-                      "—"
-                    )}
-                  </td>
-                  <td className="py-3 pr-4 text-muted whitespace-nowrap">{p.mobile}</td>
-                  <td className="py-3 pr-4 text-muted whitespace-nowrap">
-                    {p.lastConsultationDate ? relativeFromNow(p.lastConsultationDate) : "No visits yet"}
-                  </td>
-                  <td className="py-3 pr-4">
-                    <Link to={`/doctor/patients/${p.id}`}>
-                      <Button size="sm" variant="secondary" icon={FiEye}>View</Button>
-                    </Link>
-                  </td>
-                </tr>
-              );
-            })}
+            {patients.map((p) => (
+              <tr key={p.id} className="transition-colors hover:bg-slate-50/80">
+                <td className="whitespace-nowrap px-5 py-4">
+                  <div className="flex items-center gap-3">
+                    <Avatar name={p.name} id={p.id} />
+                    <span className="font-bold text-[#14142B]">{p.name}</span>
+                  </div>
+                </td>
+                <td className="px-5 py-4 text-[#14142B]">{p.age || "—"}</td>
+                <td className="px-5 py-4">
+                  {p.gender ? (
+                    <Badge color={p.gender === "Female" ? "rose" : p.gender === "Male" ? "primary" : "neutral"}>
+                      {p.gender}
+                    </Badge>
+                  ) : (
+                    "—"
+                  )}
+                </td>
+                <td className="whitespace-nowrap px-5 py-4 text-[#14142B]">{p.mobile}</td>
+                <td className="whitespace-nowrap px-5 py-4 text-[#64748B]">
+                  {p.lastConsultationDate ? relativeFromNow(p.lastConsultationDate) : "No visits yet"}
+                </td>
+                <td className="px-5 py-4">
+                  <Link to={`/doctor/patients/${p.id}`}>
+                    <Button size="sm" variant="actionView" icon={FiEye}>
+                      View
+                    </Button>
+                  </Link>
+                </td>
+              </tr>
+            ))}
           </Table>
         )}
       </Card>

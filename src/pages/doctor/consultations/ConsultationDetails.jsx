@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
-import { FiArrowLeft, FiVideo, FiCheckCircle, FiFileText, FiAlertTriangle } from "react-icons/fi";
+import { FiVideo, FiCheckCircle, FiFileText, FiAlertTriangle, FiUser, FiInfo } from "react-icons/fi";
 import { consultationService } from "../../../services/consultations/consultationService";
 import { vitalsService } from "../../../services/vitals/vitalsService";
 import { prescriptionService } from "../../../services/prescriptions/prescriptionService";
@@ -10,6 +10,7 @@ import Card from "../../../components/ui/Card";
 import Button from "../../../components/ui/Button";
 import Textarea from "../../../components/ui/Textarea";
 import Spinner from "../../../components/ui/Spinner";
+import Avatar from "../../../components/ui/Avatar";
 import StatusBadge from "../../../components/common/StatusBadge";
 import VitalsCard from "../../../components/common/VitalsCard";
 import EmptyState from "../../../components/ui/EmptyState";
@@ -53,8 +54,6 @@ export default function ConsultationDetails() {
           followUp: data.followUp || "",
         });
 
-        // Vitals recorded at the time of this consultation; if none exist,
-        // fall back to the patient's latest recorded vitals.
         try {
           const cVitals = await vitalsService.getConsultationVitals(id);
           if (cVitals?.length) {
@@ -67,8 +66,6 @@ export default function ConsultationDetails() {
           setVitals(null);
         }
 
-        // If the consultation is Completed, check whether a prescription
-        // has already been created for it.
         if (data.status === "Completed") {
           try {
             const rx = await prescriptionService.getConsultationPrescription(id);
@@ -96,10 +93,6 @@ export default function ConsultationDetails() {
     window.open(consultation.meetLink, "_blank");
   };
 
-  // Backend rule: as soon as submitClinicalDetails succeeds, the consultation
-  // becomes "Completed" — there is no "draft" concept. The permanence of this
-  // action is explained to the doctor inline (see the notice above the
-  // submit button), so no blocking browser dialog is used here.
   const handleSubmit = async () => {
     if (!form.diagnosis || !form.diagnosis.trim()) {
       toast.error("Diagnosis is required.");
@@ -129,28 +122,31 @@ export default function ConsultationDetails() {
       </Card>
     );
   }
-  if (!consultation) return <p className="text-muted">Consultation not found.</p>;
+  if (!consultation) return <Card><EmptyState title="Consultation not found." /></Card>;
 
   const p = consultation.patient;
-  // The backend only allows clinical details to be submitted while a
-  // consultation is in "Scheduled" status.
   const canSubmit = consultation.status === "Scheduled";
 
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} className="space-y-5">
-      <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-sm text-muted hover:text-navy">
-        <FiArrowLeft size={16} /> Back
-      </button>
-
-      <Card className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <p className="font-bold text-navy">{p?.name}</p>
-            <StatusBadge status={consultation.status} />
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25 }}
+      className="space-y-5"
+    >
+      {/* Header Card */}
+      <Card className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <div className="flex items-center gap-4">
+          <Avatar name={p?.name} id={p?.id || consultation.patientId} size="lg" />
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <p className="text-xl font-extrabold text-[#14142B]">{p?.name || "Patient"}</p>
+              <StatusBadge status={consultation.status} />
+            </div>
+            <p className="mt-1 text-sm text-[#64748B]">
+              {formatDate(consultation.date)} • {consultation.time} • {consultation.type} Consultation
+            </p>
           </div>
-          <p className="text-sm text-muted mt-1">
-            {formatDate(consultation.date)} • {consultation.time} • {consultation.type}
-          </p>
         </div>
         {canSubmit && consultation.meetLink && (
           <Button icon={FiVideo} onClick={handleJoinMeet}>
@@ -159,21 +155,35 @@ export default function ConsultationDetails() {
         )}
       </Card>
 
-      <div className="grid lg:grid-cols-3 gap-5 items-start">
+      <div className="grid items-start gap-5 lg:grid-cols-3">
+        {/* Left Column: Patient info & Vitals */}
         <div className="space-y-5">
-          <Card>
-            <p className="font-semibold text-navy mb-3">Patient Information</p>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between"><span className="text-muted">Age</span><span className="font-medium">{p?.age}</span></div>
-              <div className="flex justify-between"><span className="text-muted">Gender</span><span className="font-medium">{p?.gender}</span></div>
-              <div className="flex justify-between"><span className="text-muted">Mobile</span><span className="font-medium">{p?.mobile}</span></div>
-            </div>
+          <Card title="Patient Information" icon={FiUser}>
+            <dl className="space-y-3">
+              {[
+                ["Age", p?.age ? `${p.age} Years` : "—"],
+                ["Gender", p?.gender || "—"],
+                ["Mobile", p?.mobile || "—"],
+              ].map(([label, val]) => (
+                <div
+                  key={label}
+                  className="flex items-center justify-between rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-3.5 py-2.5 text-sm"
+                >
+                  <dt className="text-xs font-semibold uppercase tracking-wider text-[#64748B]">{label}</dt>
+                  <dd className="font-semibold text-[#14142B]">{val}</dd>
+                </div>
+              ))}
+            </dl>
+
             {p?.id ? (
-              <Link to={`/doctor/patients/${p.id}`} className="text-sm text-primary font-medium hover:underline block mt-3 pt-3 border-t border-slate-100">
+              <Link
+                to={`/doctor/patients/${p.id}`}
+                className="mt-4 block border-t border-[#E2E8F0] pt-3 text-center text-sm font-semibold text-[#4F46E5] transition-colors hover:text-[#4338CA] hover:underline"
+              >
                 View Full Patient Profile →
               </Link>
             ) : (
-              <p className="text-xs text-muted block mt-3 pt-3 border-t border-slate-100">
+              <p className="mt-4 border-t border-[#E2E8F0] pt-3 text-center text-xs text-[#64748B]">
                 Patient profile could not be loaded.
               </p>
             )}
@@ -195,14 +205,16 @@ export default function ConsultationDetails() {
           )}
         </div>
 
-        <div className="lg:col-span-2 space-y-5">
-          <Card className="space-y-4">
-            <p className="font-semibold text-navy">Consultation</p>
+        {/* Right Column: Consultation Clinical Form */}
+        <div className="space-y-5 lg:col-span-2">
+          <Card title="Clinical Details" className="space-y-4">
             {!canSubmit && (
-              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                This consultation is in "{consultation.status}" status, so clinical details can no
-                longer be edited or submitted (only "Scheduled" consultations are editable).
-              </p>
+              <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50/70 p-3.5 text-xs text-amber-800">
+                <FiInfo className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                <p>
+                  This consultation is in <strong>"{consultation.status}"</strong> status. Clinical details can only be edited or submitted while in "Scheduled" status.
+                </p>
+              </div>
             )}
             {FIELDS.map((f) => (
               <Textarea
@@ -216,8 +228,8 @@ export default function ConsultationDetails() {
               />
             ))}
             <Textarea
-              label="Follow-up"
-              placeholder="Follow-up recommendation"
+              label="Follow-up Recommendation"
+              placeholder="Follow-up recommendation or instructions"
               rows={2}
               value={form.followUp}
               onChange={(e) => handleChange("followUp", e.target.value)}
@@ -226,12 +238,14 @@ export default function ConsultationDetails() {
           </Card>
 
           {canSubmit && (
-            <div className="space-y-2">
-              <p className="text-xs text-muted bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
-                Submitting will mark this consultation as "Completed" and it cannot be edited again
-                afterwards.
-              </p>
-              <div className="flex flex-wrap gap-3 justify-end">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-[#F8FAFC] px-4 py-2.5 text-xs text-[#64748B]">
+                <FiInfo className="h-4 w-4 shrink-0 text-[#4F46E5]" />
+                <span>
+                  Submitting will mark this consultation as <strong>"Completed"</strong> and it cannot be edited again afterwards.
+                </span>
+              </div>
+              <div className="flex justify-end">
                 <Button icon={FiCheckCircle} loading={submitting} onClick={handleSubmit}>
                   Submit &amp; Complete Consultation
                 </Button>
@@ -240,7 +254,7 @@ export default function ConsultationDetails() {
           )}
 
           {consultation.status === "Completed" && (
-            <div className="flex flex-wrap gap-3 justify-end">
+            <div className="flex justify-end">
               {existingRx ? (
                 <Button icon={FiFileText} onClick={() => navigate(`/doctor/prescriptions/${existingRx.id}`)}>
                   View Prescription
