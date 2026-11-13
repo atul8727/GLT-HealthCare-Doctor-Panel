@@ -10,9 +10,9 @@ import Button from "../../../components/ui/Button";
 import Badge from "../../../components/ui/Badge";
 import EmptyState from "../../../components/ui/EmptyState";
 import Spinner from "../../../components/ui/Spinner";
+import Avatar from "../../../components/ui/Avatar";
 import { formatDate } from "../../../utils/formatDate";
 import { friendlyError } from "../../../utils/errorMessage";
-import { avatarColor, initialsOf } from "../../../utils/avatarColor";
 
 export default function PatientHistory() {
   const [records, setRecords] = useState([]);
@@ -24,14 +24,7 @@ export default function PatientHistory() {
       setLoading(true);
       setError(null);
       try {
-        // consultationService.getConsultations already enriches with the
-        // patient object (falling back to a best-effort fetch if the
-        // backend doesn't embed it), so there's no need for a separate
-        // getPatients() call here.
         const all = await consultationService.getConsultations("Completed");
-        // Fetch each consultation's actual prescription (if one exists) too,
-        // so the "Prescription" column shows the right thing — previously
-        // this always linked to a generic list.
         const merged = await Promise.all(
           all.map(async (c) => {
             const rx = await prescriptionService.getConsultationPrescription(c.id).catch(() => null);
@@ -48,15 +41,22 @@ export default function PatientHistory() {
   }, []);
 
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} className="space-y-5">
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25 }}
+      className="space-y-5"
+    >
       <div>
-        <h1 className="text-xl font-bold text-navy">Patient History</h1>
-        <p className="text-sm text-muted mt-1">Centralized view of previous consultation records.</p>
+        <h1 className="text-2xl font-extrabold text-[#14142B]">Patient History</h1>
+        <p className="mt-1 text-sm text-[#64748B]">Centralized view of previous consultation records.</p>
       </div>
 
-      <Card>
+      <Card padding="p-4 sm:p-6">
         {loading ? (
-          <div className="flex justify-center py-14"><Spinner /></div>
+          <div className="flex justify-center py-14">
+            <Spinner />
+          </div>
         ) : error ? (
           <EmptyState
             icon={error.status === 403 ? undefined : FiAlertTriangle}
@@ -68,18 +68,20 @@ export default function PatientHistory() {
         ) : (
           <Table columns={["Patient", "Consultation Date", "Diagnosis", "Prescription", "Action"]}>
             {records.map((r) => (
-              <tr key={r.id}>
-                <td className="py-3 pr-4 whitespace-nowrap">
+              <tr key={r.id} className="transition-colors hover:bg-slate-50/80">
+                <td className="whitespace-nowrap px-5 py-4">
                   <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-xs shrink-0 shadow-sm ${avatarColor(r.patientId)}`}>
-                      {initialsOf(r.patientName)}
-                    </div>
-                    <span className="font-medium text-navy">{r.patientName}</span>
+                    <Avatar name={r.patientName} id={r.patientId} size="sm" />
+                    <span className="font-bold text-[#14142B]">{r.patientName}</span>
                   </div>
                 </td>
-                <td className="py-3 pr-4 text-muted whitespace-nowrap">{formatDate(r.date)}</td>
-                <td className="py-3 pr-4 text-muted">{r.diagnosis || "—"}</td>
-                <td className="py-3 pr-4">
+                <td className="whitespace-nowrap px-5 py-4 text-sm text-[#64748B]">
+                  {formatDate(r.date)}
+                </td>
+                <td className="max-w-xs truncate px-5 py-4 text-sm font-medium text-[#14142B]">
+                  {r.diagnosis || "—"}
+                </td>
+                <td className="whitespace-nowrap px-5 py-4">
                   {r.prescription ? (
                     <Link to={`/doctor/prescriptions/${r.prescription.id}`}>
                       <Badge color="success">Available</Badge>
@@ -88,9 +90,11 @@ export default function PatientHistory() {
                     <Badge color="neutral">Not created</Badge>
                   )}
                 </td>
-                <td className="py-3 pr-4">
+                <td className="whitespace-nowrap px-5 py-4">
                   <Link to={`/doctor/consultations/${r.id}`}>
-                    <Button size="sm" variant="secondary" icon={FiEye}>Open</Button>
+                    <Button size="sm" variant="actionView" icon={FiEye}>
+                      View
+                    </Button>
                   </Link>
                 </td>
               </tr>

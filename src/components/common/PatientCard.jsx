@@ -1,21 +1,18 @@
 import { Link } from "react-router-dom";
 import { relativeFromNow } from "../../utils/formatDate";
-import { avatarColor, initialsOf } from "../../utils/avatarColor";
+import Avatar from "../ui/Avatar";
 
 export default function PatientCard({ patient }) {
-  const initials = initialsOf(patient.name);
   return (
     <Link
       to={`/doctor/patients/${patient.id}`}
-      className="flex items-center justify-between py-3 hover:bg-primary-light/40 -mx-2 px-2 rounded-lg transition-colors"
+      className="-mx-2 flex items-center justify-between rounded-xl px-2 py-3 transition-colors hover:bg-indigo-50/60"
     >
-      <div className="flex items-center gap-3 min-w-0">
-        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm shrink-0 shadow-sm ${avatarColor(patient.id)}`}>
-          {initials}
-        </div>
+      <div className="flex min-w-0 items-center gap-3">
+        <Avatar name={patient.name} id={patient.id} />
         <div className="min-w-0">
-          <p className="text-sm font-medium text-navy truncate">{patient.name}</p>
-          <p className="text-xs text-muted">
+          <p className="truncate text-sm font-semibold text-[#14142B]">{patient.name}</p>
+          <p className="text-xs text-[#64748B]">
             Last consultation:{" "}
             {patient.lastConsultationDate ? relativeFromNow(patient.lastConsultationDate) : "No visits yet"}
           </p>

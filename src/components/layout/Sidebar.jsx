@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { FiChevronsLeft, FiChevronsRight, FiLogOut, FiX } from "react-icons/fi";
+import { FiLogOut, FiX } from "react-icons/fi";
 import { MAIN_NAV, ACCOUNT_NAV } from "../../constants/navigation";
 import { useAuth } from "../../hooks/useAuth";
 
@@ -11,13 +12,17 @@ function NavItem({ item, collapsed, onClick }) {
       to={item.to}
       onClick={onClick}
       className={({ isActive }) =>
-        `flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-          isActive ? "bg-primary text-white" : "text-slate-300 hover:bg-white/10 hover:text-white"
-        } ${collapsed ? "justify-center" : ""}`
+        `flex items-center gap-3 rounded-xl py-2.5 text-sm font-semibold transition-all duration-150 ${
+          collapsed ? "justify-center px-0" : "px-3.5"
+        } ${
+          isActive
+            ? "bg-gradient-to-r from-[#4F46E5] to-[#6D5BF0] text-white shadow-[0_6px_14px_rgba(79,70,229,0.35)]"
+            : "text-slate-300 hover:bg-white/10 hover:text-white"
+        }`
       }
       title={collapsed ? item.label : undefined}
     >
-      <Icon size={18} className="shrink-0" />
+      <Icon size={20} className="shrink-0" />
       {!collapsed && <span>{item.label}</span>}
     </NavLink>
   );
@@ -25,23 +30,39 @@ function NavItem({ item, collapsed, onClick }) {
 
 function SidebarContent({ collapsed, onNavigate }) {
   const { logout } = useAuth();
+  const [logoFailed, setLogoFailed] = useState(false);
+
   return (
-    <div className="h-full flex flex-col bg-navy text-white">
-      <div className={`flex items-center gap-2 px-4 h-16 border-b border-white/10 ${collapsed ? "justify-center px-0" : ""}`}>
-        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center font-bold text-sm shrink-0">
-          GLT
-        </div>
-        {!collapsed && (
-          <div className="leading-tight">
-            <p className="font-semibold text-sm">GLT Healthcare</p>
+    <div className="flex h-full flex-col bg-[#0F172A] text-white">
+      {/* Logo */}
+      <div className="flex h-20 shrink-0 items-center justify-center border-b border-white/10 px-4">
+        {!collapsed && !logoFailed ? (
+          <img
+            src="/GLT_logo.jpeg"
+            alt="GLT Healthcare"
+            onError={() => setLogoFailed(true)}
+            className="h-14 w-auto max-w-[170px] rounded-md bg-white object-contain"
+          />
+        ) : !collapsed ? (
+          <div className="text-center leading-tight">
+            <p className="text-base font-extrabold text-white">GLT Healthcare</p>
             <p className="text-xs text-slate-400">Doctor Portal</p>
           </div>
+        ) : (
+          <span className="bg-gradient-to-r from-[#A5B4FC] to-[#818CF8] bg-clip-text text-xl font-extrabold tracking-tight text-transparent">
+            GLT
+          </span>
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto scrollbar-hide px-2.5 py-4 space-y-6">
+      {/* Navigation */}
+      <div className="scrollbar-hide flex-1 space-y-5 overflow-y-auto px-3 py-5">
         <div>
-          {!collapsed && <p className="px-3.5 text-[11px] font-semibold text-slate-500 uppercase mb-2">Main</p>}
+          {!collapsed && (
+            <p className="mb-2 px-3.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              Main
+            </p>
+          )}
           <div className="space-y-1">
             {MAIN_NAV.map((item) => (
               <NavItem key={item.to} item={item} collapsed={collapsed} onClick={onNavigate} />
@@ -49,7 +70,11 @@ function SidebarContent({ collapsed, onNavigate }) {
           </div>
         </div>
         <div>
-          {!collapsed && <p className="px-3.5 text-[11px] font-semibold text-slate-500 uppercase mb-2">Account</p>}
+          {!collapsed && (
+            <p className="mb-2 px-3.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              Account
+            </p>
+          )}
           <div className="space-y-1">
             {ACCOUNT_NAV.map((item) => (
               <NavItem key={item.to} item={item} collapsed={collapsed} onClick={onNavigate} />
@@ -58,15 +83,16 @@ function SidebarContent({ collapsed, onNavigate }) {
         </div>
       </div>
 
-      <div className="p-2.5 border-t border-white/10">
+      {/* Logout */}
+      <div className="border-t border-white/10 p-3">
         <button
           onClick={logout}
           title={collapsed ? "Logout" : undefined}
-          className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-white/10 hover:text-white w-full transition-colors ${
-            collapsed ? "justify-center" : ""
+          className={`flex w-full cursor-pointer items-center gap-3 rounded-xl py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:bg-white/10 hover:text-white ${
+            collapsed ? "justify-center px-0" : "px-3.5"
           }`}
         >
-          <FiLogOut size={18} />
+          <FiLogOut size={20} />
           {!collapsed && <span>Logout</span>}
         </button>
       </div>
@@ -74,22 +100,16 @@ function SidebarContent({ collapsed, onNavigate }) {
   );
 }
 
-export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
+export default function Sidebar({ collapsed, mobileOpen, setMobileOpen }) {
   return (
     <>
       {/* Desktop */}
       <motion.aside
-        animate={{ width: collapsed ? 76 : 250 }}
+        animate={{ width: collapsed ? 80 : 260 }}
         transition={{ duration: 0.2, ease: "easeInOut" }}
-        className="hidden lg:block h-screen sticky top-0 shrink-0 relative"
+        className="sticky top-0 hidden h-screen shrink-0 lg:block"
       >
         <SidebarContent collapsed={collapsed} />
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="absolute -right-3 top-20 w-6 h-6 rounded-full bg-white border border-slate-200 shadow-card flex items-center justify-center text-navy hover:text-primary"
-        >
-          {collapsed ? <FiChevronsRight size={14} /> : <FiChevronsLeft size={14} />}
-        </button>
       </motion.aside>
 
       {/* Mobile */}
@@ -101,20 +121,21 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setMobileOpen(false)}
-              className="fixed inset-0 bg-black/40 z-40 lg:hidden"
+              className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm lg:hidden"
             />
             <motion.aside
               initial={{ x: -280 }}
               animate={{ x: 0 }}
               exit={{ x: -280 }}
               transition={{ duration: 0.25, ease: "easeInOut" }}
-              className="fixed left-0 top-0 h-screen w-64 z-50 lg:hidden"
+              className="fixed left-0 top-0 z-50 h-screen w-[270px] shadow-2xl lg:hidden"
             >
               <div className="relative h-full">
                 <SidebarContent collapsed={false} onNavigate={() => setMobileOpen(false)} />
                 <button
                   onClick={() => setMobileOpen(false)}
-                  className="absolute top-4 right-3 text-white/70 hover:text-white"
+                  aria-label="Close menu"
+                  className="absolute right-3 top-3 cursor-pointer rounded-lg p-1 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
                 >
                   <FiX size={20} />
                 </button>

@@ -1,38 +1,46 @@
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
-// Converts any on-screen element (like the prescription preview) into a
-// real downloadable PDF file — takes a screenshot and fits it into an
-// A4-page PDF.
-export async function downloadElementAsPdf(elementId, filename = "document.pdf") {
+/**
+ * Converts the prescription preview element into a high-resolution,
+ * professionally formatted A4 PDF.
+ */
+export async function downloadElementAsPdf(elementId, filename = "prescription.pdf") {
   const el = document.getElementById(elementId);
-  if (!el) throw new Error("Preview element not found.");
+  if (!el) throw new Error("Prescription preview element not found.");
 
+  // Render element to high-res canvas (2x DPI scale for razor-sharp text and graphics)
   const canvas = await html2canvas(el, {
     scale: 2,
     backgroundColor: "#ffffff",
     useCORS: true,
+    logging: false,
+    scrollX: 0,
+    scrollY: 0,
   });
 
   const imgData = canvas.toDataURL("image/png");
-  const pdf = new jsPDF({ unit: "pt", format: "a4" });
+  const pdf = new jsPDF({
+    orientation: "portrait",
+    unit: "mm",
+    format: "a4",
+  });
 
-  const pageWidth = pdf.internal.pageSize.getWidth();
-  const pageHeight = pdf.internal.pageSize.getHeight();
-  const imgWidth = pageWidth;
-  const imgHeight = (canvas.height * imgWidth) / canvas.width;
+  const pdfWidth = 210; // A4 width in mm
+  const pageHeight = 297; // A4 height in mm
+  const imgHeight = (canvas.height * pdfWidth) / canvas.width;
 
   let heightLeft = imgHeight;
   let position = 0;
 
-  pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+  pdf.addImage(imgData, "PNG", 0, position, pdfWidth, imgHeight, undefined, "FAST");
   heightLeft -= pageHeight;
 
-  // If the content is longer than one page, continue onto the next pages.
+  // Multi-page support if prescription extends beyond 1 page
   while (heightLeft > 0) {
     position = heightLeft - imgHeight;
     pdf.addPage();
-    pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+    pdf.addImage(imgData, "PNG", 0, position, pdfWidth, imgHeight, undefined, "FAST");
     heightLeft -= pageHeight;
   }
 

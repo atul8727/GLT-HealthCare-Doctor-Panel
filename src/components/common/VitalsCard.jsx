@@ -1,3 +1,4 @@
+import { FiActivity } from "react-icons/fi";
 import Card from "../ui/Card";
 import { formatDateTime } from "../../utils/formatDate";
 
@@ -13,18 +14,17 @@ export default function VitalsCard({ vitals, title = "Latest Vitals" }) {
     ["BMI", vitals.bmi],
   ];
   return (
-    <Card>
-      <p className="font-semibold text-navy mb-3">{title}</p>
-      <div className="space-y-2.5">
+    <Card title={title} icon={FiActivity}>
+      <dl className="divide-y divide-[#E2E8F0]">
         {rows.map(([label, val]) => (
-          <div key={label} className="flex items-center justify-between text-sm">
-            <span className="text-muted">{label}</span>
-            <span className="font-medium text-navy">{val}</span>
+          <div key={label} className="flex items-center justify-between py-2.5 text-sm first:pt-0 last:pb-0">
+            <dt className="text-[#64748B]">{label}</dt>
+            <dd className="font-semibold text-[#14142B]">{val}</dd>
           </div>
         ))}
-      </div>
+      </dl>
       {vitals.recordedOn && (
-        <p className="text-xs text-muted mt-3 pt-3 border-t border-slate-100">
+        <p className="mt-4 border-t border-[#E2E8F0] pt-3 text-xs text-[#64748B]">
           Recorded on: {formatDateTime(vitals.recordedOn)}
         </p>
       )}

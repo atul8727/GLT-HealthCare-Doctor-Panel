@@ -10,15 +10,10 @@ import Button from "../../../components/ui/Button";
 import Badge from "../../../components/ui/Badge";
 import EmptyState from "../../../components/ui/EmptyState";
 import Spinner from "../../../components/ui/Spinner";
+import Avatar from "../../../components/ui/Avatar";
 import { formatDate } from "../../../utils/formatDate";
 import { friendlyError } from "../../../utils/errorMessage";
-import { avatarColor, initialsOf } from "../../../utils/avatarColor";
 
-// There is no dedicated "list all prescriptions" endpoint on the backend —
-// prescriptions can only be fetched per-patient or per-consultation. So here
-// we take all of this doctor's patients, fetch each patient's prescriptions,
-// and build one combined list. If fetching for one patient fails, the whole
-// list doesn't crash.
 export default function Prescriptions() {
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -51,15 +46,22 @@ export default function Prescriptions() {
   }, []);
 
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} className="space-y-5">
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25 }}
+      className="space-y-5"
+    >
       <div>
-        <h1 className="text-xl font-bold text-navy">Prescriptions</h1>
-        <p className="text-sm text-muted mt-1">All prescriptions you've generated.</p>
+        <h1 className="text-2xl font-extrabold text-[#14142B]">Prescriptions</h1>
+        <p className="mt-1 text-sm text-[#64748B]">All prescriptions you've generated.</p>
       </div>
 
-      <Card>
+      <Card padding="p-4 sm:p-6">
         {loading ? (
-          <div className="flex justify-center py-14"><Spinner /></div>
+          <div className="flex justify-center py-14">
+            <Spinner />
+          </div>
         ) : error ? (
           <EmptyState
             icon={error.status === 403 ? undefined : FiAlertTriangle}
@@ -71,23 +73,29 @@ export default function Prescriptions() {
         ) : (
           <Table columns={["Patient", "Date", "Medicines", "Follow-up", "Action"]}>
             {list.map((rx) => (
-              <tr key={rx.id}>
-                <td className="py-3 pr-4 whitespace-nowrap">
+              <tr key={rx.id} className="transition-colors hover:bg-slate-50/80">
+                <td className="whitespace-nowrap px-5 py-4">
                   <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-xs shrink-0 shadow-sm ${avatarColor(rx.patient?.id)}`}>
-                      {initialsOf(rx.patient?.name)}
-                    </div>
-                    <span className="text-navy">{rx.patient?.name}</span>
+                    <Avatar name={rx.patient?.name} id={rx.patient?.id} size="sm" />
+                    <span className="font-bold text-[#14142B]">{rx.patient?.name || "—"}</span>
                   </div>
                 </td>
-                <td className="py-3 pr-4 text-muted whitespace-nowrap">{formatDate(rx.date)}</td>
-                <td className="py-3 pr-4">
-                  <Badge color="primary">{rx.medicines?.length || 0} medicine(s)</Badge>
+                <td className="whitespace-nowrap px-5 py-4 text-sm text-[#64748B]">
+                  {formatDate(rx.date)}
                 </td>
-                <td className="py-3 pr-4 text-muted whitespace-nowrap">{rx.followUpDate ? formatDate(rx.followUpDate) : "—"}</td>
-                <td className="py-3 pr-4">
+                <td className="whitespace-nowrap px-5 py-4">
+                  <Badge color="primary">
+                    {rx.medicines?.length || 0} medicine(s)
+                  </Badge>
+                </td>
+                <td className="whitespace-nowrap px-5 py-4 text-sm text-[#64748B]">
+                  {rx.followUpDate ? formatDate(rx.followUpDate) : "—"}
+                </td>
+                <td className="whitespace-nowrap px-5 py-4">
                   <Link to={`/doctor/prescriptions/${rx.id}`}>
-                    <Button size="sm" variant="secondary" icon={FiEye}>View</Button>
+                    <Button size="sm" variant="actionView" icon={FiEye}>
+                      View
+                    </Button>
                   </Link>
                 </td>
               </tr>
